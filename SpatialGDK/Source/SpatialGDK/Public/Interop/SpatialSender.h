@@ -90,7 +90,7 @@ public:
 
 	void UpdateInterestComponent(AActor* Actor);
 
-	void GetInitialOnlyComponentIds(Worker_EntityId EntityId, TArray<Worker_ComponentId>& OutInitialOnlyComponentIds);
+	// void GetInitialOnlyComponentIds(Worker_EntityId EntityId, TArray<Worker_ComponentId>& OutInitialOnlyComponentIds);
 	void SendInitialOnlyRequest(Worker_EntityId EntityId);
 	void CancelInitialOnlyRequest(Worker_EntityId EntityId);
 
@@ -175,5 +175,5 @@ private:
 	SpatialGDK::SpatialEventTracer* EventTracer;
 
 	int32_t MaxInitialOnlyRequestPerTick;
-	TMap<Worker_EntityId, TSet<Worker_ComponentId>> InitialOnlyRequests;
+	TSet<Worker_EntityId> InitialOnlyRequests;
 };
