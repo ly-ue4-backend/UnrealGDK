@@ -111,14 +111,14 @@ const Worker_ComponentId STARTUP_ACTOR_MANAGER_COMPONENT_ID = 9993;
 const Worker_ComponentId GSM_SHUTDOWN_COMPONENT_ID = 9992;
 const Worker_ComponentId PLAYER_CONTROLLER_COMPONENT_ID = 9991;
 
-const Worker_ComponentId SERVER_AUTH_COMPONENT_SET_ID = 9900;
-const Worker_ComponentId CLIENT_AUTH_COMPONENT_SET_ID = 9901;
-const Worker_ComponentId DATA_COMPONENT_SET_ID = 9902;
-const Worker_ComponentId OWNER_ONLY_COMPONENT_SET_ID = 9903;
-const Worker_ComponentId HANDOVER_COMPONENT_SET_ID = 9904;
-const Worker_ComponentId GDK_KNOWN_ENTITY_AUTH_COMPONENT_SET_ID = 9905;
-const Worker_ComponentId ROUTING_WORKER_AUTH_COMPONENT_SET_ID = 9906;
-const Worker_ComponentId INITIAL_ONLY_COMPONENT_SET_ID = 9907;
+const Worker_ComponentSetId SERVER_AUTH_COMPONENT_SET_ID = 9900;
+const Worker_ComponentSetId CLIENT_AUTH_COMPONENT_SET_ID = 9901;
+const Worker_ComponentSetId DATA_COMPONENT_SET_ID = 9902;
+const Worker_ComponentSetId OWNER_ONLY_COMPONENT_SET_ID = 9903;
+const Worker_ComponentSetId HANDOVER_COMPONENT_SET_ID = 9904;
+const Worker_ComponentSetId GDK_KNOWN_ENTITY_AUTH_COMPONENT_SET_ID = 9905;
+const Worker_ComponentSetId ROUTING_WORKER_AUTH_COMPONENT_SET_ID = 9906;
+const Worker_ComponentSetId INITIAL_ONLY_COMPONENT_SET_ID = 9907;
 
 const FString SERVER_AUTH_COMPONENT_SET_NAME = TEXT("ServerAuthoritativeComponentSet");
 const FString CLIENT_AUTH_COMPONENT_SET_NAME = TEXT("ClientAuthoritativeComponentSet");
