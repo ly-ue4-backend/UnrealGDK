@@ -203,7 +203,6 @@ void ActorSystem::PopulateDataStore(const Worker_EntityId EntityId)
 			break;
 		case SpatialConstants::UNREAL_METADATA_COMPONENT_ID:
 			Components.Metadata = UnrealMetadata(Data.GetUnderlying());
-			Components.Metadata.GetNativeEntityClass();
 			break;
 		default:
 			break;
@@ -220,7 +219,6 @@ void ActorSystem::ApplyComponentAdd(const Worker_EntityId EntityId, const Worker
 		break;
 	case SpatialConstants::UNREAL_METADATA_COMPONENT_ID:
 		ActorDataStore[EntityId].Metadata = UnrealMetadata(Data);
-		ActorDataStore[EntityId].Metadata.GetNativeEntityClass();
 		break;
 	default:
 		break;
@@ -521,9 +519,9 @@ void ActorSystem::ComponentUpdated(const Worker_EntityId EntityId, const Worker_
 
 	if (EventTracer != nullptr)
 	{
-		TArray<FSpatialGDKSpanId> CauseSpanIds = EventTracer->GetSpansForComponent(EntityComponentId(EntityId, ComponentId));
+		TArray<FSpatialGDKSpanId> CauseSpanIds = EventTracer->GetAndConsumeSpansForComponent(EntityComponentId(EntityId, ComponentId));
 		EventTracer->TraceEvent(FSpatialTraceEventBuilder::CreateComponentUpdate(Channel->Actor, TargetObject, EntityId, ComponentId),
-								(const Trace_SpanIdType*)CauseSpanIds.GetData(), 1);
+								(const Trace_SpanIdType*)CauseSpanIds.GetData(), /* NumCauses */ 1);
 	}
 
 	ESchemaComponentType Category = NetDriver->ClassInfoManager->GetCategoryByComponentId(ComponentId);
@@ -1141,8 +1139,6 @@ void ActorSystem::ReceiveActor(Worker_EntityId EntityId)
 	ActorData& ActorComponents = ActorDataStore[EntityId];
 
 	const USpatialGDKSettings* SpatialGDKSettings = GetDefault<USpatialGDKSettings>();
-
-	// TODO: Async loading
 
 	AActor* EntityActor = Cast<AActor>(NetDriver->PackageMap->GetObjectFromEntityId(EntityId));
 	if (EntityActor != nullptr)
