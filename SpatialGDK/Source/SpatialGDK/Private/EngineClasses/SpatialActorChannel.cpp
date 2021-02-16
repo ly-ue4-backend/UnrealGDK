@@ -544,6 +544,9 @@ int64 USpatialActorChannel::ReplicateActor()
 		Actor->OnSerializeNewActor(Bunch);
 	}
 
+	// Always replicate initial only properties
+	RepFlags.bNetInitial = true;
+
 	RepFlags.bNetSimulated = (Actor->GetRemoteRole() == ROLE_SimulatedProxy);
 #if ENGINE_MINOR_VERSION <= 23
 	RepFlags.bRepPhysics = Actor->ReplicatedMovement.bRepPhysics;
