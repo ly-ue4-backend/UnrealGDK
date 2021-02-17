@@ -102,7 +102,6 @@ public:
 	void ProcessUpdatesQueuedUntilAuthority(Worker_EntityId EntityId, Worker_ComponentId ComponentId);
 
 	void FlushRPCService();
-	void FlushInitialOnlyRequests();
 
 	SpatialGDK::RPCPayload CreateRPCPayloadFromParams(UObject* TargetObject, const FUnrealObjectRef& TargetObjectRef, UFunction* Function,
 													  ERPCType Type, void* Params);

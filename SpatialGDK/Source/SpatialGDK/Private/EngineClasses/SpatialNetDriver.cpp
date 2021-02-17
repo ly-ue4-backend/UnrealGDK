@@ -433,6 +433,8 @@ void USpatialNetDriver::CreateAndInitializeCoreClasses()
 				FOnPackageLoadedForEntity::CreateUObject(this, &USpatialNetDriver::OnAsyncPackageLoadFilterComplete));
 		}
 
+		InitialOnlyFilter = MakeUnique<SpatialGDK::InitialOnlyFilter>(this);
+
 		CreateAndInitializeLoadBalancingClasses();
 
 		ActorFilter = [this](const Worker_EntityId EntityId, const SpatialGDK::EntityViewElement& Element) {
@@ -451,6 +453,17 @@ void USpatialNetDriver::CreateAndInitializeCoreClasses()
 				if (!AsyncPackageLoadFilter->IsAssetLoadedOrTriggerAsyncLoad(EntityId, Metadata.ClassPath))
 				{
 					return false;
+				}
+			}
+
+			if (InitialOnlyFilter != nullptr)
+			{
+				if (Element.Components.FindByPredicate(SpatialGDK::ComponentIdEquality{ SpatialConstants::INITIAL_ONLY_PRESENCE_COMPONENT_ID }) != nullptr)
+				{
+					if (!InitialOnlyFilter->HasInitialOnlyDataOrRequest(EntityId))
+					{
+						return false;
+					}
 				}
 			}
 
@@ -2068,6 +2081,11 @@ void USpatialNetDriver::TickDispatch(float DeltaTime)
 		{
 			AsyncPackageLoadFilter->ProcessActorsFromAsyncLoading();
 		}
+
+		if (InitialOnlyFilter != nullptr)
+		{
+			InitialOnlyFilter->FlushRequests();
+		}
 	}
 }
 
@@ -2223,7 +2241,6 @@ void USpatialNetDriver::TickFlush(float DeltaTime)
 	if (Sender != nullptr)
 	{
 		Sender->FlushRPCService();
-		Sender->FlushInitialOnlyRequests();
 	}
 
 	if (IsServer())

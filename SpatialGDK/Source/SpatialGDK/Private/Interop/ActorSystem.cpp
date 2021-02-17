@@ -592,11 +592,6 @@ void ActorSystem::EntityAdded(const Worker_EntityId EntityId)
 	{
 		AuthorityGained(EntityId, AuthoritativeComponentSet);
 	}
-
-	// 	if (!NetDriver->GetWorld()->GetGameInstance()->IsDedicatedServerInstance())
-	// 	{
-	// 		NetDriver->Sender->SendInitialOnlyRequest(EntityId);
-	// 	}
 }
 
 void ActorSystem::EntityRemoved(const Worker_EntityId EntityId)
@@ -613,11 +608,6 @@ void ActorSystem::EntityRemoved(const Worker_EntityId EntityId)
 	if (RetiredActorIndex != INDEX_NONE)
 	{
 		EntitiesToRetireOnAuthorityGain.RemoveAtSwap(RetiredActorIndex);
-	}
-
-	if (!NetDriver->GetWorld()->GetGameInstance()->IsDedicatedServerInstance())
-	{
-		NetDriver->Sender->CancelInitialOnlyRequest(EntityId);
 	}
 }
 
@@ -1253,6 +1243,15 @@ void ActorSystem::ReceiveActor(Worker_EntityId EntityId)
 										  ObjectsToResolvePendingOpsFor);
 	}
 
+	if (NetDriver->InitialOnlyFilter != nullptr && NetDriver->InitialOnlyFilter->HasInitialOnlyData(EntityId))
+	{
+		for (const ComponentData& Component : NetDriver->InitialOnlyFilter->GetInitialOnlyData(EntityId))
+		{
+			ApplyComponentDataOnActorCreation(EntityId, Component.GetComponentId(), Component.GetUnderlying(), *Channel,
+				ObjectsToResolvePendingOpsFor);
+		}
+	}
+
 	// Resolve things like RepNotify or RPCs after applying component data.
 	for (const ObjectPtrRefPair& ObjectToResolve : ObjectsToResolvePendingOpsFor)
 	{
@@ -1733,47 +1732,5 @@ bool ActorSystem::EntityHasComponent(const Worker_EntityId EntityId, const Worke
 	}
 	return false;
 }
-
-// void ActorSystem::HandleIntialOnlyResponse(const Worker_EntityQueryResponseOp& Op)
-// {
-// 	USpatialNetDriver* Driver = Cast<USpatialNetDriver>(NetDriver);
-// 	if (Op.status_code != WORKER_STATUS_CODE_SUCCESS)
-// 	{
-// 		UE_LOG(LogActorSystem, Warning, TEXT("%s - Entity query failed: %s"), *FString(__FUNCTION__), UTF8_TO_TCHAR(Op.message));
-// 		return;
-// 	}
-//
-// 	if (Op.result_count == 0)
-// 	{
-// 		UE_LOG(LogActorSystem, Warning, TEXT("%s - Could not find any entity: %s"), *FString(__FUNCTION__), UTF8_TO_TCHAR(Op.message));
-// 		return;
-// 	}
-//
-// 	for (uint32_t i = 0; i < Op.result_count; ++i)
-// 	{
-// 		const Worker_Entity* Entity = &Op.results[i];
-// 		USpatialActorChannel* Channel = Driver->GetActorChannelByEntityId(Entity->entity_id);
-//
-// 		for (uint32_t j = 0; j < Entity->component_count; ++j)
-// 		{
-// 			const Worker_ComponentData* CompData = &Entity->components[j];
-// 			Worker_ComponentId ComponentId = CompData->component_id;
-//
-// 			uint32 Offset;
-// 			if (!NetDriver->ClassInfoManager->GetOffsetByComponentId(ComponentId, Offset))
-// 			{
-// 				UE_LOG(LogActorSystem, Error, TEXT("%s - Failed to find corresponding component offset, ComponentId:%d"),
-// 					   *FString(__FUNCTION__), ComponentId);
-// 				continue;
-// 			}
-//
-// 			UObject* TargetObject =
-// 				Offset ? NetDriver->PackageMap->GetObjectFromUnrealObjectRef(FUnrealObjectRef(Entity->entity_id, Offset)).Get()
-// 					   : Channel->GetActor();
-//
-// 			ApplyComponentData(*Channel, *TargetObject, ComponentId, CompData->schema_type);
-// 		}
-// 	}
-// }
 
 } // namespace SpatialGDK

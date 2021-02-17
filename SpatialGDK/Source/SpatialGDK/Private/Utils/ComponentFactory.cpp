@@ -43,6 +43,7 @@ ComponentFactory::ComponentFactory(bool bInterestDirty, USpatialNetDriver* InNet
 	, PackageMap(InNetDriver->PackageMap)
 	, ClassInfoManager(InNetDriver->ClassInfoManager)
 	, bInterestHasChanged(bInterestDirty)
+	, bInitialOnlyDataWritten(false)
 	, LatencyTracer(InLatencyTracer)
 {
 }
@@ -379,6 +380,8 @@ TArray<FWorkerComponentData> ComponentFactory::CreateComponentDatas(UObject* Obj
 	{
 		ComponentDatas.Add(
 			CreateComponentData(Info.SchemaComponents[SCHEMA_InitialOnly], Object, RepChangeState, SCHEMA_InitialOnly, OutBytesWritten));
+
+		bInitialOnlyDataWritten = true;
 	}
 
 	return ComponentDatas;
@@ -463,6 +466,7 @@ TArray<FWorkerComponentUpdate> ComponentFactory::CreateComponentUpdates(UObject*
 			{
 				ComponentUpdates.Add(MultiClientUpdate);
 				OutBytesWritten += BytesWritten;
+				bInitialOnlyDataWritten = true;
 			}
 		}
 	}
