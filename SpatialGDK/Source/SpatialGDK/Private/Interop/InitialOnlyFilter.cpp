@@ -11,7 +11,6 @@ DEFINE_LOG_CATEGORY(LogInitialOnlyFilter);
 
 namespace SpatialGDK
 {
-
 InitialOnlyFilter::InitialOnlyFilter(USpatialNetDriver* InNetDriver)
 	: NetDriver(InNetDriver)
 {
@@ -81,13 +80,12 @@ void InitialOnlyFilter::HandleInitialOnlyResponse(const Worker_EntityQueryRespon
 
 	for (uint32_t i = 0; i < Op.result_count; ++i)
 	{
-		//TArray<SpatialGDK::ComponentData> Components;
 		const Worker_Entity* Entity = &Op.results[i];
 		TArray<ComponentData>& ComponentDatas = RetrievedInitialOnlyData.FindOrAdd(Entity->entity_id);
 		for (uint32_t j = 0; j < Entity->component_count; ++j)
 		{
 			const Worker_ComponentData* ComponentData = &Entity->components[j];
-			ComponentDatas.Emplace( ComponentData::CreateCopy(ComponentData->schema_type, ComponentData->component_id) );
+			ComponentDatas.Emplace(ComponentData::CreateCopy(ComponentData->schema_type, ComponentData->component_id));
 		}
 
 		NetDriver->Connection->GetCoordinator().RefreshEntityCompleteness(Entity->entity_id);
@@ -99,4 +97,4 @@ const TArray<SpatialGDK::ComponentData>& InitialOnlyFilter::GetInitialOnlyData(W
 	return *RetrievedInitialOnlyData.Find(EntityId);
 }
 
-}
+} // namespace SpatialGDK

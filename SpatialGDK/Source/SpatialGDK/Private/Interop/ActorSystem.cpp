@@ -1248,7 +1248,7 @@ void ActorSystem::ReceiveActor(Worker_EntityId EntityId)
 		for (const ComponentData& Component : NetDriver->InitialOnlyFilter->GetInitialOnlyData(EntityId))
 		{
 			ApplyComponentDataOnActorCreation(EntityId, Component.GetComponentId(), Component.GetUnderlying(), *Channel,
-				ObjectsToResolvePendingOpsFor);
+											  ObjectsToResolvePendingOpsFor);
 		}
 	}
 

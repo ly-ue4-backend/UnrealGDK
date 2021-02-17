@@ -458,7 +458,9 @@ void USpatialNetDriver::CreateAndInitializeCoreClasses()
 
 			if (InitialOnlyFilter != nullptr)
 			{
-				if (Element.Components.FindByPredicate(SpatialGDK::ComponentIdEquality{ SpatialConstants::INITIAL_ONLY_PRESENCE_COMPONENT_ID }) != nullptr)
+				if (Element.Components.FindByPredicate(
+						SpatialGDK::ComponentIdEquality{ SpatialConstants::INITIAL_ONLY_PRESENCE_COMPONENT_ID })
+					!= nullptr)
 				{
 					if (!InitialOnlyFilter->HasInitialOnlyDataOrRequest(EntityId))
 					{

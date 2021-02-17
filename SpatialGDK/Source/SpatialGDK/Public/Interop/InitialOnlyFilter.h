@@ -7,7 +7,6 @@
 #include "SpatialConstants.h"
 #include "SpatialView/ComponentData.h"
 
-
 DECLARE_LOG_CATEGORY_EXTERN(LogInitialOnlyFilter, Log, All);
 
 class USpatialNetDriver;
@@ -24,8 +23,8 @@ public:
 	void FlushRequests();
 	void HandleInitialOnlyResponse(const Worker_EntityQueryResponseOp& Op);
 	const TArray<ComponentData>& GetInitialOnlyData(Worker_EntityId EntityId) const;
-private:
 
+private:
 	USpatialNetDriver* NetDriver;
 	TSet<Worker_EntityId_Key> PendingInitialOnlyRequests;
 	TMap<Worker_EntityId_Key, TArray<ComponentData>> RetrievedInitialOnlyData;

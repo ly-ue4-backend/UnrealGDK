@@ -23,7 +23,8 @@ EntityQuery::EntityQuery(const Worker_EntityQuery& Query)
 
 Worker_EntityQuery EntityQuery::GetWorkerQuery() const
 {
-	return Worker_EntityQuery{ Constraints[0], static_cast<uint32>(SnapshotComponentIds.Num()), SnapshotComponentIds.GetData(), static_cast<uint32>(SnapshotComponentSetIds.Num()), SnapshotComponentSetIds.GetData() };
+	return Worker_EntityQuery{ Constraints[0], static_cast<uint32>(SnapshotComponentIds.Num()), SnapshotComponentIds.GetData(),
+							   static_cast<uint32>(SnapshotComponentSetIds.Num()), SnapshotComponentSetIds.GetData() };
 }
 
 int32 EntityQuery::GetNestedConstraintCount(const Worker_Constraint& Constraint)
