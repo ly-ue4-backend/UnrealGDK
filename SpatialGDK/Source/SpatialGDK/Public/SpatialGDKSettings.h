@@ -424,4 +424,8 @@ public:
 
 	UPROPERTY(Config)
 	bool bEnableAlwaysWriteRPCs;
+
+	/** Enables initial only replication condition. */
+	UPROPERTY(EditAnywhere, Config, Category = "Replication", meta = (DisplayName = "Enable Initial Only Replication Condition"))
+	bool bEnableInitialOnlyReplicationCondition;
 };

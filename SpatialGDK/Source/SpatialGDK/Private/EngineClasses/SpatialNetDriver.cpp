@@ -426,14 +426,17 @@ void USpatialNetDriver::CreateAndInitializeCoreClasses()
 		PlayerSpawner = NewObject<USpatialPlayerSpawner>();
 		SnapshotManager = MakeUnique<SpatialSnapshotManager>();
 
-		if (GetDefault<USpatialGDKSettings>()->bAsyncLoadNewClassesOnEntityCheckout)
+		if (SpatialSettings->bAsyncLoadNewClassesOnEntityCheckout)
 		{
 			AsyncPackageLoadFilter = NewObject<UAsyncPackageLoadFilter>();
 			AsyncPackageLoadFilter->Init(
 				FOnPackageLoadedForEntity::CreateUObject(this, &USpatialNetDriver::OnAsyncPackageLoadFilterComplete));
 		}
 
-		InitialOnlyFilter = MakeUnique<SpatialGDK::InitialOnlyFilter>(this);
+		if (SpatialSettings->bEnableInitialOnlyReplicationCondition && !IsServer())
+		{
+			InitialOnlyFilter = MakeUnique<SpatialGDK::InitialOnlyFilter>(this);
+		}
 
 		CreateAndInitializeLoadBalancingClasses();
 

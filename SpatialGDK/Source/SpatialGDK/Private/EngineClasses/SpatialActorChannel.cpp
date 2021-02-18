@@ -554,7 +554,7 @@ int64 USpatialActorChannel::ReplicateActor()
 		Actor->OnSerializeNewActor(Bunch);
 	}
 
-	// Always replicate initial only properties
+	// Always replicate initial only properties and rely on QBI to filter where necessary.
 	RepFlags.bNetInitial = true;
 
 	RepFlags.bNetSimulated = (Actor->GetRemoteRole() == ROLE_SimulatedProxy);
