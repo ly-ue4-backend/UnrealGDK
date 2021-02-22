@@ -600,6 +600,11 @@ void ActorSystem::EntityRemoved(const Worker_EntityId EntityId)
 
 	RemoveActor(EntityId);
 
+	if (NetDriver->InitialOnlyFilter != nullptr)
+	{
+		NetDriver->InitialOnlyFilter->RemoveInitialOnlyData(EntityId);
+	}
+
 	// Stop tracking if the entity was deleted as a result of deleting the actor during creation.
 	// This assumes that authority will be gained before interest is gained and lost.
 	const int32 RetiredActorIndex = EntitiesToRetireOnAuthorityGain.IndexOfByPredicate([EntityId](const DeferredRetire& Retire) {

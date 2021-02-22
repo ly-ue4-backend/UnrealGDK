@@ -23,6 +23,7 @@ public:
 	void FlushRequests();
 	void HandleInitialOnlyResponse(const Worker_EntityQueryResponseOp& Op);
 	const TArray<ComponentData>& GetInitialOnlyData(Worker_EntityId EntityId) const;
+	void RemoveInitialOnlyData(Worker_EntityId EntityId);
 
 private:
 	USpatialNetDriver* NetDriver;

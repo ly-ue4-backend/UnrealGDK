@@ -97,4 +97,9 @@ const TArray<SpatialGDK::ComponentData>& InitialOnlyFilter::GetInitialOnlyData(W
 	return *RetrievedInitialOnlyData.Find(EntityId);
 }
 
+void InitialOnlyFilter::RemoveInitialOnlyData(Worker_EntityId EntityId)
+{
+	RetrievedInitialOnlyData.FindAndRemoveChecked(EntityId);
+}
+
 } // namespace SpatialGDK
