@@ -534,12 +534,7 @@ void ActorSystem::ComponentUpdated(const Worker_EntityId EntityId, const Worker_
 	else if (Category == SCHEMA_Handover)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_ActorSystemApplyHandover);
-		if (!NetDriver->IsServer())
-		{
-			UE_LOG(LogActorSystem, Verbose, TEXT("Entity: %d Component: %d - Skipping Handover component because we're a client."),
-				   EntityId, ComponentId);
-			return;
-		}
+		check(NetDriver->IsServer());
 
 		ApplyComponentUpdate(ComponentId, Update, *TargetObject, *Channel, /* bIsHandover */ true);
 	}

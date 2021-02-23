@@ -26,7 +26,7 @@ public:
 	void RemoveInitialOnlyData(Worker_EntityId EntityId);
 
 private:
-	void ClearInflightRequest(Worker_RequestId RequestId);
+	void ClearRequest(Worker_RequestId RequestId);
 
 	USpatialNetDriver* NetDriver;
 	TSet<Worker_EntityId_Key> PendingInitialOnlyEntities;

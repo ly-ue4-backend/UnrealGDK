@@ -79,7 +79,7 @@ void InitialOnlyFilter::FlushRequests()
 
 void InitialOnlyFilter::HandleInitialOnlyResponse(const Worker_EntityQueryResponseOp& Op)
 {
-	ClearInflightRequest(Op.request_id);
+	ClearRequest(Op.request_id);
 
 	if (Op.status_code != WORKER_STATUS_CODE_SUCCESS)
 	{
@@ -122,7 +122,7 @@ void InitialOnlyFilter::RemoveInitialOnlyData(Worker_EntityId EntityId)
 	RetrievedInitialOnlyData.FindAndRemoveChecked(EntityId);
 }
 
-void InitialOnlyFilter::ClearInflightRequest(Worker_RequestId RequestId)
+void InitialOnlyFilter::ClearRequest(Worker_RequestId RequestId)
 {
 	for (auto EntityId : InflightInitialOnlyRequests.FindChecked(RequestId))
 	{
