@@ -95,7 +95,9 @@ namespace Improbable.WorkerCoordinator
                 return new LifetimeComponent(maxLifetime, minLifetime, useNewSimulatedPlayer > 0, logger);
             }
 
-            return null;
+            // test code
+            return new LifetimeComponent(8, 2, true, logger);
+            //return null;
         }
 
         private LifetimeComponent(int maxLifetime, int minLifetime, bool useNewSimulatedPlayer, Logger logger)
