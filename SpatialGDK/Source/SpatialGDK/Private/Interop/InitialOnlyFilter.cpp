@@ -23,33 +23,42 @@ bool InitialOnlyFilter::HasInitialOnlyData(Worker_EntityId EntityId) const
 
 bool InitialOnlyFilter::HasInitialOnlyDataOrRequest(Worker_EntityId EntityId)
 {
-	if (RetrievedInitialOnlyData.Find(EntityId) != nullptr)
+	if (HasInitialOnlyData(EntityId))
 	{
 		return true;
 	}
 
-	PendingInitialOnlyRequests.Add(EntityId);
+	if (InflightInitialOnlyEntities.Find(EntityId) != nullptr)
+	{
+		return false;
+	}
+
+	PendingInitialOnlyEntities.Add(EntityId);
 	return false;
 }
 
 void InitialOnlyFilter::FlushRequests()
 {
-	if (PendingInitialOnlyRequests.Num() == 0)
+	if (PendingInitialOnlyEntities.Num() == 0)
 	{
 		return;
 	}
 
 	TArray<Worker_Constraint> EntityConstraintArray;
+	TSet<Worker_EntityId_Key> EntitiesRequested(MoveTemp(PendingInitialOnlyEntities));
 
-	for (auto Entity : PendingInitialOnlyRequests)
+	for (auto EntityId : EntitiesRequested)
 	{
+		UE_LOG(LogInitialOnlyFilter, Verbose, TEXT("Requested initial only data for entity %lld."), EntityId);
+
 		Worker_Constraint Constraints{};
 		Constraints.constraint_type = WORKER_CONSTRAINT_TYPE_ENTITY_ID;
-		Constraints.constraint.entity_id_constraint.entity_id = Entity;
+		Constraints.constraint.entity_id_constraint.entity_id = EntityId;
 
 		EntityConstraintArray.Add(Constraints);
+
+		InflightInitialOnlyEntities.Add(EntityId);
 	}
-	PendingInitialOnlyRequests.Empty();
 
 	Worker_EntityQuery InitialOnlyQuery{};
 
@@ -64,31 +73,40 @@ void InitialOnlyFilter::FlushRequests()
 	InitialOnlyQueryDelegate.BindRaw(this, &InitialOnlyFilter::HandleInitialOnlyResponse);
 
 	NetDriver->Receiver->AddEntityQueryDelegate(RequestID, InitialOnlyQueryDelegate);
+
+	InflightInitialOnlyRequests.Add(RequestID, { MoveTemp(EntitiesRequested) });
 }
 
 void InitialOnlyFilter::HandleInitialOnlyResponse(const Worker_EntityQueryResponseOp& Op)
 {
+	ClearInflightRequest(Op.request_id);
+
 	if (Op.status_code != WORKER_STATUS_CODE_SUCCESS)
 	{
-		return;
-	}
-
-	if (Op.result_count == 0)
-	{
+		UE_LOG(LogInitialOnlyFilter, Error, TEXT("Failed to retrieve initial only data. Code: %d, %s"), Op.status_code, UTF8_TO_TCHAR(Op.message));
 		return;
 	}
 
 	for (uint32_t i = 0; i < Op.result_count; ++i)
 	{
 		const Worker_Entity* Entity = &Op.results[i];
-		TArray<ComponentData>& ComponentDatas = RetrievedInitialOnlyData.FindOrAdd(Entity->entity_id);
-		for (uint32_t j = 0; j < Entity->component_count; ++j)
-		{
-			const Worker_ComponentData* ComponentData = &Entity->components[j];
-			ComponentDatas.Emplace(ComponentData::CreateCopy(ComponentData->schema_type, ComponentData->component_id));
-		}
+		const Worker_EntityId EntityId = Entity->entity_id;
 
-		NetDriver->Connection->GetCoordinator().RefreshEntityCompleteness(Entity->entity_id);
+		// Ensure the entity we queried is still in view.
+		if (NetDriver->Connection->GetView().Find(EntityId) != nullptr)
+		{
+			UE_LOG(LogInitialOnlyFilter, Verbose, TEXT("Received initial only data for entity %lld."), EntityId);
+
+			// Extract and store the initial only data.
+			TArray<ComponentData>& ComponentDatas = RetrievedInitialOnlyData.FindOrAdd(EntityId);
+			for (uint32_t j = 0; j < Entity->component_count; ++j)
+			{
+				const Worker_ComponentData* ComponentData = &Entity->components[j];
+				ComponentDatas.Emplace(ComponentData::CreateCopy(ComponentData->schema_type, ComponentData->component_id));
+			}
+
+			NetDriver->Connection->GetCoordinator().RefreshEntityCompleteness(Entity->entity_id);
+		}
 	}
 }
 
@@ -99,7 +117,18 @@ const TArray<SpatialGDK::ComponentData>& InitialOnlyFilter::GetInitialOnlyData(W
 
 void InitialOnlyFilter::RemoveInitialOnlyData(Worker_EntityId EntityId)
 {
+	UE_LOG(LogInitialOnlyFilter, Verbose, TEXT("Removed initial only data for entity %lld."), EntityId);
 	RetrievedInitialOnlyData.FindAndRemoveChecked(EntityId);
+}
+
+void InitialOnlyFilter::ClearInflightRequest(Worker_RequestId RequestId)
+{
+	for (auto EntityId : InflightInitialOnlyRequests.FindChecked(RequestId))
+	{
+		InflightInitialOnlyEntities.Remove(EntityId);
+	}
+
+	InflightInitialOnlyRequests.Remove(RequestId);
 }
 
 } // namespace SpatialGDK

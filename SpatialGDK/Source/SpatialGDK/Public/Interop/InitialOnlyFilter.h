@@ -26,8 +26,13 @@ public:
 	void RemoveInitialOnlyData(Worker_EntityId EntityId);
 
 private:
+
+	void ClearInflightRequest(Worker_RequestId RequestId);
+
 	USpatialNetDriver* NetDriver;
-	TSet<Worker_EntityId_Key> PendingInitialOnlyRequests;
+	TSet<Worker_EntityId_Key> PendingInitialOnlyEntities;
+	TSet<Worker_EntityId_Key> InflightInitialOnlyEntities;
+	TMap<Worker_RequestId_Key, TSet<Worker_EntityId_Key>> InflightInitialOnlyRequests;
 	TMap<Worker_EntityId_Key, TArray<ComponentData>> RetrievedInitialOnlyData;
 };
 } // namespace SpatialGDK
