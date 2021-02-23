@@ -12,7 +12,7 @@ using namespace SpatialGDKEditor::Schema;
 
 TArray<EReplicatedPropertyGroup> GetAllReplicatedPropertyGroups()
 {
-	static TArray<EReplicatedPropertyGroup> Groups = { REP_MultiClient, REP_SingleClient, REP_MultiClient_InitialOnly };
+	static TArray<EReplicatedPropertyGroup> Groups = { REP_MultiClient, REP_SingleClient, REP_InitialOnly };
 	return Groups;
 }
 
@@ -22,7 +22,7 @@ FString GetReplicatedPropertyGroupName(EReplicatedPropertyGroup Group)
 	{
 		return TEXT("OwnerOnly");
 	}
-	else if (Group == REP_MultiClient_InitialOnly)
+	else if (Group == REP_InitialOnly)
 	{
 		return TEXT("InitialOnly");
 	}
@@ -455,7 +455,7 @@ FUnrealFlatRepData GetFlatRepData(TSharedPtr<FUnrealType> TypeInfo)
 	FUnrealFlatRepData RepData;
 	RepData.Add(REP_MultiClient);
 	RepData.Add(REP_SingleClient);
-	RepData.Add(REP_MultiClient_InitialOnly);
+	RepData.Add(REP_InitialOnly);
 
 	VisitAllProperties(TypeInfo, [&RepData](TSharedPtr<FUnrealProperty> PropertyInfo) {
 		if (PropertyInfo->ReplicationData.IsValid())
@@ -469,7 +469,7 @@ FUnrealFlatRepData GetFlatRepData(TSharedPtr<FUnrealType> TypeInfo)
 				Group = REP_SingleClient;
 				break;
 			case COND_InitialOnly:
-				Group = REP_MultiClient_InitialOnly;
+				Group = REP_InitialOnly;
 				break;
 			}
 			RepData[Group].Add(PropertyInfo->ReplicationData->Handle, PropertyInfo);

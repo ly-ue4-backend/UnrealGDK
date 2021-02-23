@@ -114,9 +114,6 @@ void USpatialSender::Init(USpatialNetDriver* InNetDriver, FTimerManager* InTimer
 	{
 		PeriodicallyProcessOutgoingRPCs();
 	}
-
-	// TODO: make it configurable in the future
-	MaxInitialOnlyRequestPerTick = MAX_INITIAL_ONLY_REQUEST_PER_TICK;
 }
 
 Worker_RequestId USpatialSender::CreateEntity(USpatialActorChannel* Channel, uint32& OutBytesWritten)

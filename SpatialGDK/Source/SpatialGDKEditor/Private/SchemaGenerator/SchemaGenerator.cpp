@@ -31,7 +31,7 @@ ESchemaComponentType PropertyGroupToSchemaComponentType(EReplicatedPropertyGroup
 	{
 		return SCHEMA_OwnerOnly;
 	}
-	else if (Group == REP_MultiClient_InitialOnly)
+	else if (Group == REP_InitialOnly)
 	{
 		return SCHEMA_InitialOnly;
 	}
@@ -149,14 +149,8 @@ FActorSpecificSubobjectSchemaData GenerateSchemaForStaticallyAttachedSubobject(F
 	{
 		// Since it is possible to replicate subobjects which have no replicated properties.
 		// We need to generate a schema component for every subobject. So if we have no replicated
-		// properties, we only don't generate a schema component if we are REP_SingleClient
-		if (RepData[Group].Num() == 0 && Group == REP_SingleClient)
-		{
-			continue;
-		}
-
-		// We do not generate a schema component if we are REP_MultiClient_InitialOnly.
-		if (RepData[Group].Num() == 0 && Group == REP_MultiClient_InitialOnly)
+		// properties, we only generate a schema component if we are REP_MultiClient.
+		if (RepData[Group].Num() == 0 && Group != REP_MultiClient)
 		{
 			continue;
 		}
@@ -439,14 +433,8 @@ void GenerateSubobjectSchema(FComponentIdGenerator& IdGenerator, UClass* Class, 
 	{
 		// Since it is possible to replicate subobjects which have no replicated properties.
 		// We need to generate a schema component for every subobject. So if we have no replicated
-		// properties, we only don't generate a schema component if we are REP_SingleClient
-		if (RepData[Group].Num() == 0 && Group == REP_SingleClient)
-		{
-			continue;
-		}
-
-		// We do not generate a schema component if we are REP_MultiClient_InitialOnly.
-		if (RepData[Group].Num() == 0 && Group == REP_MultiClient_InitialOnly)
+		// properties, we only generate a schema component if we are REP_MultiClient.
+		if (RepData[Group].Num() == 0 && Group != REP_MultiClient)
 		{
 			continue;
 		}
@@ -518,14 +506,8 @@ void GenerateSubobjectSchema(FComponentIdGenerator& IdGenerator, UClass* Class, 
 		{
 			// Since it is possible to replicate subobjects which have no replicated properties.
 			// We need to generate a schema component for every subobject. So if we have no replicated
-			// properties, we only don't generate a schema component if we are REP_SingleClient
-			if (RepData[Group].Num() == 0 && Group == REP_SingleClient)
-			{
-				continue;
-			}
-
-			// We do not generate a schema component if we are REP_MultiClient_InitialOnly.
-			if (RepData[Group].Num() == 0 && Group == REP_MultiClient_InitialOnly)
+			// properties, we only generate a schema component if we are REP_MultiClient.
+			if (RepData[Group].Num() == 0 && Group != REP_MultiClient)
 			{
 				continue;
 			}

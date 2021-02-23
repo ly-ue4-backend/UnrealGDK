@@ -45,8 +45,6 @@ public:
 	void RetireWhenAuthoritative(Worker_EntityId EntityId, Worker_ComponentId ActorClassId, bool bIsNetStartup, bool bNeedsTearOff);
 	void RemoveActor(Worker_EntityId EntityId);
 
-	// void HandleIntialOnlyResponse(const Worker_EntityQueryResponseOp& Op);
-
 private:
 	// Helper struct to manage FSpatialObjectRepState update cycle.
 	// TODO: move into own class.
