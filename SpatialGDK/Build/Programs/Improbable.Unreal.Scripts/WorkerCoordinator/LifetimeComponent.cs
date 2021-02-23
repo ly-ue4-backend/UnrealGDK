@@ -51,7 +51,7 @@ namespace Improbable.WorkerCoordinator
         // Temp variables to avoid allocate variable in tick method.
         private long CurTicks;
         private int Length;
-        private ClientInfo ClientInfo;
+        private ClientInfo SimulatedClientInfo;
         private Process ClientProcess;
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace Improbable.WorkerCoordinator
         {
             WaitingList.Add(clientInfo);
 
-            Logger.WriteLog($"=======> add client info ClientName={ClientInfo.ClientName}, StartTick={ClientInfo.StartTick}, EndTick={ClientInfo.EndTick}, curTick={CurTicks}");
+            Logger.WriteLog($"=======> add client info ClientName={clientInfo.ClientName}, StartTick={clientInfo.StartTick}, EndTick={clientInfo.EndTick}, curTick={DateTime.Now.Ticks}");
         }
 
         private long NewLifetimeTicks()
@@ -146,6 +146,8 @@ namespace Improbable.WorkerCoordinator
         {
             CurTicks = DateTime.Now.Ticks;
 
+            Logger.WriteLog($"curTicks={CurTicks}, wait={WaitingList.Count}, start={StartingList.Count}, run={RunningList.Count}");
+
             // Data flow is waiting list -> starting list -> running list -> waiting list.
             // Checking sequence is running list -> starting list -> waiting list.
 
@@ -153,28 +155,28 @@ namespace Improbable.WorkerCoordinator
             Length = RunningList.Count;
             for (int i = Length - 1; i >= 0; --i)
             {
-                ClientInfo = RunningList[i];
-                if (CurTicks >= ClientInfo.EndTick)
+                SimulatedClientInfo = RunningList[i];
+                if (CurTicks >= SimulatedClientInfo.EndTick)
                 {
                     // End client.
-                    Host?.StopClient(ClientInfo);
+                    Host?.StopClient(SimulatedClientInfo);
 
-                    Logger.WriteLog($"=======> end client info ClientName={ClientInfo.ClientName}, StartTick={ClientInfo.StartTick}, EndTick={ClientInfo.EndTick}, curTick={CurTicks}");
+                    Logger.WriteLog($"=======> end client info ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
 
                     // Delay 10 seconds to restart.
-                    ClientInfo.StartTick = TimeSpan.FromSeconds(10).Ticks + CurTicks;
+                    SimulatedClientInfo.StartTick = TimeSpan.FromSeconds(10).Ticks + CurTicks;
 
                     // Restart with new simulated player.
                     if (UseNewSimulatedPlayer)
                     {
-                        ClientInfo.ClientName = "SimulatedPlayer" + Guid.NewGuid();
+                        SimulatedClientInfo.ClientName = "SimulatedPlayer" + Guid.NewGuid();
                     }
 
                     // Move to wait list.
                     RunningList.RemoveAt(i);
-                    WaitingList.Add(ClientInfo);
+                    WaitingList.Add(SimulatedClientInfo);
 
-                    Logger.WriteLog($"=======> move to starting list ClientName={ClientInfo.ClientName}, StartTick={ClientInfo.StartTick}, EndTick={ClientInfo.EndTick}, curTick={CurTicks}");
+                    Logger.WriteLog($"=======> move to waiting list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                 }
             }
 
@@ -182,46 +184,51 @@ namespace Improbable.WorkerCoordinator
             Length = StartingList.Count;
             for (int i = Length - 1; i >= 0; --i)
             {
-                ClientInfo = StartingList[i];
-                ClientProcess = Host?.GetActiveProcess(ClientInfo.ClientName);
-                if (ClientProcess != null && ClientProcess.HasExited)
+                SimulatedClientInfo = StartingList[i];
+                //ClientProcess = Host?.GetActiveProcess(SimulatedClientInfo.ClientName);
+                //if (ClientProcess != null && ClientProcess.HasExited)
+                //{
+                //    Host?.RemoveActiveProcess(SimulatedClientInfo.ClientName);
                 {
-                    Host?.RemoveActiveProcess(ClientInfo.ClientName);
                     StartingList.RemoveAt(i);
 
-                    if (ClientProcess.ExitCode == 0)
+                    //if (ClientProcess.ExitCode == 0)
                     {
                         // move it to running list.
-                        ClientInfo.EndTick = CurTicks + NewLifetimeTicks();
-                        RunningList.Add(ClientInfo);
+                        SimulatedClientInfo.EndTick = CurTicks + NewLifetimeTicks();
+                        RunningList.Add(SimulatedClientInfo);
 
-                        Logger.WriteLog($"=======> move to running list ClientName={ClientInfo.ClientName}, StartTick={ClientInfo.StartTick}, EndTick={ClientInfo.EndTick}, curTick={CurTicks}");
+                        Logger.WriteLog($"=======> move to running list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                     }
-                    else
-                    {
-                        // Try restart by moving it back to waiting list.
-                        WaitingList.Add(ClientInfo);
+                    //else
+                    //{
+                    //    // Try restart by moving it back to waiting list.
+                    //    WaitingList.Add(SimulatedClientInfo);
 
-                        Logger.WriteLog($"=======> move back to waiting list ClientName={ClientInfo.ClientName}, StartTick={ClientInfo.StartTick}, EndTick={ClientInfo.EndTick}, curTick={CurTicks}");
-                    }
+                    //    Logger.WriteLog($"=======> move back to waiting list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
+                    //}
                 }
+                //else
+                //{
+                //    Logger.WriteLog($"running list process is null name={SimulatedClientInfo.ClientName}, host={Host == null}");
+                //}
             }
 
             // Waiting list.
             Length = WaitingList.Count;
             for (int i = Length - 1; i >= 0; --i)
             {
-                ClientInfo = WaitingList[i];
-                if (CurTicks >= ClientInfo.StartTick)
+                SimulatedClientInfo = WaitingList[i];
+                if (CurTicks >= SimulatedClientInfo.StartTick)
                 {
                     // Start client.
-                    Host?.StartClient(ClientInfo);
+                    Host?.StartClient(SimulatedClientInfo);
 
                     // Move to running list.
                     WaitingList.RemoveAt(i);
-                    StartingList.Add(ClientInfo);
+                    StartingList.Add(SimulatedClientInfo);
 
-                    Logger.WriteLog($"=======> move back to waiting list ClientName={ClientInfo.ClientName}, StartTick={ClientInfo.StartTick}, EndTick={ClientInfo.EndTick}, curTick={CurTicks}");
+                    Logger.WriteLog($"=======> move to starting list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                 }
             }
         }
