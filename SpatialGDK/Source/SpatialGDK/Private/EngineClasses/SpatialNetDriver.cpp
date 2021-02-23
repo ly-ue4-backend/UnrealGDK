@@ -3135,15 +3135,10 @@ void USpatialNetDriver::RegisterSpatialDebugger(ASpatialDebugger* InSpatialDebug
 		}
 		else
 		{
-			const auto DebuggingFilter = [](const Worker_EntityId, const EntityViewElement& Element) -> bool {
-				return Element.Components.ContainsByPredicate(ComponentIdEquality{ SpatialConstants::SPATIAL_DEBUGGING_COMPONENT_ID });
-			};
-
-			const auto DebuggingCallbacks = { Connection->GetCoordinator().CreateComponentExistenceRefreshCallback(
-				SpatialConstants::SPATIAL_DEBUGGING_COMPONENT_ID) };
-
+			// Ideally we filter for the SPATIAL_DEBUGGING_COMPONENT_ID here as well, however as filters are compositional currently, and it's more
+			// important to Actor correctness, for now we just rely on the existing Actor Filtering.
 			DebuggerSubViewPtr =
-				&Connection->GetCoordinator().CreateSubView(SpatialConstants::ACTOR_TAG_COMPONENT_ID, DebuggingFilter, DebuggingCallbacks);
+					&Connection->GetCoordinator().CreateSubView(SpatialConstants::ACTOR_TAG_COMPONENT_ID, ActorFilter, ActorRefreshCallbacks);
 		}
 
 		check(DebuggerSubViewPtr != nullptr);

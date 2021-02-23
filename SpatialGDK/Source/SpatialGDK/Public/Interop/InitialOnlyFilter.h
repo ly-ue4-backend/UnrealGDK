@@ -26,7 +26,6 @@ public:
 	void RemoveInitialOnlyData(Worker_EntityId EntityId);
 
 private:
-
 	void ClearInflightRequest(Worker_RequestId RequestId);
 
 	USpatialNetDriver* NetDriver;

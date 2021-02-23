@@ -83,7 +83,8 @@ void InitialOnlyFilter::HandleInitialOnlyResponse(const Worker_EntityQueryRespon
 
 	if (Op.status_code != WORKER_STATUS_CODE_SUCCESS)
 	{
-		UE_LOG(LogInitialOnlyFilter, Error, TEXT("Failed to retrieve initial only data. Code: %d, %s"), Op.status_code, UTF8_TO_TCHAR(Op.message));
+		UE_LOG(LogInitialOnlyFilter, Error, TEXT("Failed to retrieve initial only data. Code: %d, %s"), Op.status_code,
+			   UTF8_TO_TCHAR(Op.message));
 		return;
 	}
 
