@@ -20,7 +20,7 @@ namespace Improbable.WorkerCoordinator
         private const string AdditionalProcessArguments = "-FailOnNetworkFailure";
 
         protected Logger Logger;
-        private List<Process> ActiveProcesses = new List<Process>();
+        private Dictionary<string, Process> ActiveProcesses = new Dictionary<string, Process>();
 
         public AbstractWorkerCoordinator(Logger logger)
         {
@@ -49,11 +49,22 @@ namespace Improbable.WorkerCoordinator
 
                 Logger.WriteLog("Starting worker " + simulatedPlayerName + " with args: " + argsToStartWith);
 
-                var process = Process.Start(fileName, argsToStartWith);
+                Process process;
 
-                if (process != null)
+                if (ActiveProcesses.ContainsKey(simulatedPlayerName))
                 {
-                    ActiveProcesses.Add(process);
+                    process = ActiveProcesses[simulatedPlayerName];
+
+                    Logger.WriteError($"Simulated player process {simulatedPlayerName} is already exist.");
+                }
+                else
+                {
+                    process = Process.Start(fileName, argsToStartWith);
+
+                    if (process != null)
+                    {
+                        ActiveProcesses.Add(simulatedPlayerName, process);
+                    }
                 }
 
                 return process;
@@ -62,6 +73,24 @@ namespace Improbable.WorkerCoordinator
             {
                 Logger.WriteError($"Error starting simulated player: {e.Message}");
                 return null;
+            }
+        }
+
+        public Process GetActiveProcess(string simulatedPlayerName)
+        {
+            if (ActiveProcesses.ContainsKey(simulatedPlayerName))
+            {
+                return ActiveProcesses[simulatedPlayerName];
+            }
+
+            return null;
+        }
+
+        public void RemoveActiveProcess(string simulatedPlayerName)
+        {
+            if (ActiveProcesses.ContainsKey(simulatedPlayerName))
+            {
+                ActiveProcesses.Remove(simulatedPlayerName);
             }
         }
 
@@ -74,19 +103,29 @@ namespace Improbable.WorkerCoordinator
         {
             while (true)
             {
-                var finishedProcesses = ActiveProcesses.Where(process => process.HasExited).ToList();
+                var finishedProcesses = ActiveProcesses.Where(kv => kv.Value.HasExited).ToList();
 
-                var incorrectlyFinishedProcesses = finishedProcesses.Where(process => process.ExitCode != 0).ToList();
+                var incorrectlyFinishedProcesses = finishedProcesses.Where(kv => kv.Value.ExitCode != 0).ToList();
 
-                if (incorrectlyFinishedProcesses.Count == 0 && finishedProcesses.Count == ActiveProcesses.Count)
+                // Remove correctly finished processes.
+                foreach (var kv in finishedProcesses)
+                {
+                    if (kv.Value.ExitCode == 0)
+                    {
+                        ActiveProcesses.Remove(kv.Key);
+                    }
+                }
+
+                if (incorrectlyFinishedProcesses.Count == 0 && ActiveProcesses.Count == 0)
                 {
                     return;
                 }
 
-                foreach (var process in incorrectlyFinishedProcesses)
+                // Try restart incorrectly finished processes.
+                foreach (var kv in incorrectlyFinishedProcesses)
                 {
-                    Logger.WriteLog($"Restarting simulated player after it failed with exit code {process.ExitCode}");
-                    process.Start();
+                    Logger.WriteLog($"Restarting simulated player after it failed with exit code {kv.Value.ExitCode}");
+                    kv.Value.Start();
                 }
 
                 Thread.Sleep(TimeSpan.FromMilliseconds(PollSimulatedPlayerProcessIntervalMillis));
