@@ -233,7 +233,7 @@ void EntityFactory::WriteUnrealComponents(TArray<FWorkerComponentData>& Componen
 	FHandoverChangeState InitialHandoverChanges = Channel->CreateInitialHandoverChangeState(Info);
 
 	TArray<FWorkerComponentData> ActorDataComponents =
-		DataFactory.CreateComponentDatas(Actor, Info, InitialRepChanges, InitialHandoverChanges, OutBytesWritten);
+		DataFactory.CreateComponentDatas(Actor, Info, InitialRepChanges, InitialHandoverChanges, false, OutBytesWritten);
 
 	ComponentDatas.Append(ActorDataComponents);
 
@@ -265,6 +265,7 @@ void EntityFactory::WriteUnrealComponents(TArray<FWorkerComponentData>& Componen
 			}
 
 			// If this object is not in the PackageMap, it has been dynamically created.
+			bool bDynamicSubobject = false;
 			if (!PackageMap->GetUnrealObjectRefFromObject(Subobject).IsValid())
 			{
 				const FClassInfo* SubobjectInfo = PackageMap->TryResolveNewDynamicSubobjectAndGetClassInfo(Subobject);
@@ -274,6 +275,8 @@ void EntityFactory::WriteUnrealComponents(TArray<FWorkerComponentData>& Componen
 					// This is a failure but there is already a log inside TryResolveNewDynamicSubbojectAndGetClassInfo
 					continue;
 				}
+
+				bDynamicSubobject = true;
 			}
 
 			const FClassInfo& SubobjectInfo = ClassInfoManager->GetOrCreateClassInfoByObject(Subobject);
@@ -281,8 +284,10 @@ void EntityFactory::WriteUnrealComponents(TArray<FWorkerComponentData>& Componen
 			FRepChangeState SubobjectRepChanges = Channel->CreateInitialRepChangeState(Subobject);
 			FHandoverChangeState SubobjectHandoverChanges = Channel->CreateInitialHandoverChangeState(SubobjectInfo);
 
-			TArray<FWorkerComponentData> ActorSubobjectDatas =
-				DataFactory.CreateComponentDatas(Subobject, SubobjectInfo, SubobjectRepChanges, SubobjectHandoverChanges, OutBytesWritten);
+			bool bWarnAboutDynamicComponentUsage = bDynamicSubobject && SpatialSettings->bEnableInitialOnlyReplicationCondition;
+			;
+			TArray<FWorkerComponentData> ActorSubobjectDatas = DataFactory.CreateComponentDatas(
+				Subobject, SubobjectInfo, SubobjectRepChanges, SubobjectHandoverChanges, bWarnAboutDynamicComponentUsage, OutBytesWritten);
 			ComponentDatas.Append(ActorSubobjectDatas);
 		}
 	}

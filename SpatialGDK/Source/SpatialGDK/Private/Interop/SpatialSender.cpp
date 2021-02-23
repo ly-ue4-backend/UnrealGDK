@@ -181,8 +181,9 @@ void USpatialSender::SendAddComponentForSubobject(USpatialActorChannel* Channel,
 
 	ComponentFactory DataFactory(false, NetDriver, USpatialLatencyTracer::GetTracer(Subobject));
 
-	TArray<FWorkerComponentData> SubobjectDatas =
-		DataFactory.CreateComponentDatas(Subobject, SubobjectInfo, SubobjectRepChanges, SubobjectHandoverChanges, OutBytesWritten);
+	bool bWarnAboutInitialOnlyUsage = GetDefault<USpatialGDKSettings>()->bEnableInitialOnlyReplicationCondition;
+	TArray<FWorkerComponentData> SubobjectDatas = DataFactory.CreateComponentDatas(
+		Subobject, SubobjectInfo, SubobjectRepChanges, SubobjectHandoverChanges, bWarnAboutInitialOnlyUsage, OutBytesWritten);
 	SendAddComponents(Channel->GetEntityId(), SubobjectDatas);
 
 	Channel->PendingDynamicSubobjects.Remove(TWeakObjectPtr<UObject>(Subobject));
