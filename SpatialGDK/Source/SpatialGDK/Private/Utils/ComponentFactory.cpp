@@ -52,22 +52,103 @@ ComponentFactory::ComponentFactory(bool bInterestDirty, USpatialNetDriver* InNet
 {
 }
 
-void VisitRepChanges(const FRepChangeState& Changes, FRepChangeVisitorCallback Callback)
+uint32 ComponentFactory::FillSchemaObject(Schema_Object* ComponentObject, UObject* Object, const FRepChangeState& Changes,
+	ESchemaComponentType PropertyGroup, bool bIsInitialData, TraceKey* OutLatencyTraceId,
+	TArray<Schema_FieldId>* ClearedIds /*= nullptr*/)
 {
+	SCOPE_CYCLE_COUNTER(STAT_FactoryProcessPropertyUpdates);
+
+	const uint32 BytesStart = Schema_GetWriteBufferLength(ComponentObject);
+
+	// Populate the replicated data component updates from the replicated property changelist.
 	if (Changes.RepChanged.Num() > 0)
 	{
 		FChangelistIterator ChangelistIterator(Changes.RepChanged, 0);
 		FRepHandleIterator HandleIterator(static_cast<UStruct*>(Changes.RepLayout.GetOwner()), ChangelistIterator, Changes.RepLayout.Cmds,
-										  Changes.RepLayout.BaseHandleToCmdIndex, 0, 1, 0, Changes.RepLayout.Cmds.Num() - 1);
-
+			Changes.RepLayout.BaseHandleToCmdIndex, 0, 1, 0, Changes.RepLayout.Cmds.Num() - 1);
 		while (HandleIterator.NextHandle())
 		{
 			const FRepLayoutCmd& Cmd = Changes.RepLayout.Cmds[HandleIterator.CmdIndex];
 			const FRepParentCmd& Parent = Changes.RepLayout.Parents[Cmd.ParentIndex];
 
-			if (!Callback(Cmd, Parent, HandleIterator.Handle))
+#if TRACE_LIB_ACTIVE
+			if (LatencyTracer != nullptr && OutLatencyTraceId != nullptr)
 			{
-				break;
+				TraceKey PropertyKey = InvalidTraceKey;
+				PropertyKey = LatencyTracer->RetrievePendingTrace(Object, Cmd.Property);
+				if (PropertyKey == InvalidTraceKey)
+				{
+					// Check for sending a nested property
+					PropertyKey = LatencyTracer->RetrievePendingTrace(Object, Parent.Property);
+				}
+				if (PropertyKey != InvalidTraceKey)
+				{
+					// If we have already got a trace for this actor/component, we will end one of them here
+					if (*OutLatencyTraceId != InvalidTraceKey)
+					{
+						UE_LOG(LogComponentFactory, Warning,
+							TEXT("%s property trace being dropped because too many active on this actor (%s)"), *Cmd.Property->GetName(),
+							*Object->GetName());
+						LatencyTracer->WriteAndEndTrace(*OutLatencyTraceId, TEXT("Multiple actor component traces not supported"), true);
+					}
+					*OutLatencyTraceId = PropertyKey;
+				}
+			}
+#endif
+			if (GetGroupFromCondition(Parent.Condition) == PropertyGroup)
+			{
+				const uint8* Data = (uint8*)Object + Cmd.Offset;
+
+				bool bProcessedFastArrayProperty = false;
+
+#if USE_NETWORK_PROFILER
+				const uint32 ProfilerBytesStart = Schema_GetWriteBufferLength(ComponentObject);
+#endif
+
+				if (Cmd.Type == ERepLayoutCmdType::DynamicArray)
+				{
+					GDK_PROPERTY(ArrayProperty)* ArrayProperty = GDK_CASTFIELD<GDK_PROPERTY(ArrayProperty)>(Cmd.Property);
+
+					// Check if this is a FastArraySerializer array and if so, call our custom delta serialization
+					if (UScriptStruct* NetDeltaStruct = GetFastArraySerializerProperty(ArrayProperty))
+					{
+						SCOPE_CYCLE_COUNTER(STAT_FactoryProcessFastArrayUpdate);
+
+						FSpatialNetBitWriter ValueDataWriter(PackageMap);
+
+						if (FSpatialNetDeltaSerializeInfo::DeltaSerializeWrite(NetDriver, ValueDataWriter, Object, Parent.ArrayIndex,
+							Parent.Property, NetDeltaStruct)
+							|| bIsInitialData)
+						{
+							AddBytesToSchema(ComponentObject, HandleIterator.Handle, ValueDataWriter);
+						}
+
+						bProcessedFastArrayProperty = true;
+					}
+				}
+
+				if (!bProcessedFastArrayProperty)
+				{
+					AddProperty(ComponentObject, HandleIterator.Handle, Cmd.Property, Data, ClearedIds);
+				}
+
+#if USE_NETWORK_PROFILER
+				/**
+				 *  a good proxy for how many bits are being sent for a property. Reasons for why it might not be fully accurate:
+						- the serialized size of a message is just the body contents. Typically something will send the message with the
+				 length prefixed, which might be varint encoded, and you pushing the size over some size can cause the encoding of the
+				 length be bigger
+						- similarly, if you push the message over some size it can cause fragmentation which means you now have to pay for
+				 the headers again
+						- if there is any compression or anything else going on, the number of bytes actually transferred because of this
+				 data can differ
+						- lastly somewhat philosophical question of who pays for the overhead of a packet and whether you attribute a part
+				 of it to each field or attribute it to the update itself, but I assume you care a bit less about this
+				 */
+				const uint32 ProfilerBytesEnd = Schema_GetWriteBufferLength(ComponentObject);
+				NETWORK_PROFILER(
+					GNetworkProfiler.TrackReplicateProperty(Cmd.Property, (ProfilerBytesEnd - ProfilerBytesStart) * CHAR_BIT, nullptr));
+#endif
 			}
 
 			if (Cmd.Type == ERepLayoutCmdType::DynamicArray)
@@ -79,100 +160,6 @@ void VisitRepChanges(const FRepChangeState& Changes, FRepChangeVisitorCallback C
 			}
 		}
 	}
-}
-
-uint32 ComponentFactory::FillSchemaObject(Schema_Object* ComponentObject, UObject* Object, const FRepChangeState& Changes,
-										  ESchemaComponentType PropertyGroup, bool bIsInitialData, TraceKey* OutLatencyTraceId,
-										  TArray<Schema_FieldId>* ClearedIds /*= nullptr*/)
-{
-	SCOPE_CYCLE_COUNTER(STAT_FactoryProcessPropertyUpdates);
-
-	const uint32 BytesStart = Schema_GetWriteBufferLength(ComponentObject);
-
-	// Populate the replicated data component updates from the replicated property changelist.
-	VisitRepChanges(Changes, [&](const FRepLayoutCmd& Cmd, const FRepParentCmd& Parent, const int32 Handle) {
-#if TRACE_LIB_ACTIVE
-		if (LatencyTracer != nullptr && OutLatencyTraceId != nullptr)
-		{
-			TraceKey PropertyKey = InvalidTraceKey;
-			PropertyKey = LatencyTracer->RetrievePendingTrace(Object, Cmd.Property);
-			if (PropertyKey == InvalidTraceKey)
-			{
-				// Check for sending a nested property
-				PropertyKey = LatencyTracer->RetrievePendingTrace(Object, Parent.Property);
-			}
-			if (PropertyKey != InvalidTraceKey)
-			{
-				// If we have already got a trace for this actor/component, we will end one of them here
-				if (*OutLatencyTraceId != InvalidTraceKey)
-				{
-					UE_LOG(LogComponentFactory, Warning, TEXT("%s property trace being dropped because too many active on this actor (%s)"),
-						   *Cmd.Property->GetName(), *Object->GetName());
-					LatencyTracer->WriteAndEndTrace(*OutLatencyTraceId, TEXT("Multiple actor component traces not supported"), true);
-				}
-				*OutLatencyTraceId = PropertyKey;
-			}
-		}
-#endif
-
-		if (GetGroupFromCondition(Parent.Condition) == PropertyGroup)
-		{
-			const uint8* Data = (uint8*)Object + Cmd.Offset;
-
-			bool bProcessedFastArrayProperty = false;
-
-#if USE_NETWORK_PROFILER
-			const uint32 ProfilerBytesStart = Schema_GetWriteBufferLength(ComponentObject);
-#endif
-
-			if (Cmd.Type == ERepLayoutCmdType::DynamicArray)
-			{
-				GDK_PROPERTY(ArrayProperty)* ArrayProperty = GDK_CASTFIELD<GDK_PROPERTY(ArrayProperty)>(Cmd.Property);
-
-				// Check if this is a FastArraySerializer array and if so, call our custom delta serialization
-				if (UScriptStruct* NetDeltaStruct = GetFastArraySerializerProperty(ArrayProperty))
-				{
-					SCOPE_CYCLE_COUNTER(STAT_FactoryProcessFastArrayUpdate);
-
-					FSpatialNetBitWriter ValueDataWriter(PackageMap);
-
-					if (FSpatialNetDeltaSerializeInfo::DeltaSerializeWrite(NetDriver, ValueDataWriter, Object, Parent.ArrayIndex,
-																		   Parent.Property, NetDeltaStruct)
-						|| bIsInitialData)
-					{
-						AddBytesToSchema(ComponentObject, Handle, ValueDataWriter);
-					}
-
-					bProcessedFastArrayProperty = true;
-				}
-			}
-
-			if (!bProcessedFastArrayProperty)
-			{
-				AddProperty(ComponentObject, Handle, Cmd.Property, Data, ClearedIds);
-			}
-
-#if USE_NETWORK_PROFILER
-			/**
-			 *  a good proxy for how many bits are being sent for a property. Reasons for why it might not be fully accurate:
-					- the serialized size of a message is just the body contents. Typically something will send the message with the
-			 length prefixed, which might be varint encoded, and you pushing the size over some size can cause the encoding of the
-			 length be bigger
-					- similarly, if you push the message over some size it can cause fragmentation which means you now have to pay for
-			 the headers again
-					- if there is any compression or anything else going on, the number of bytes actually transferred because of this
-			 data can differ
-					- lastly somewhat philosophical question of who pays for the overhead of a packet and whether you attribute a part
-			 of it to each field or attribute it to the update itself, but I assume you care a bit less about this
-			 */
-			const uint32 ProfilerBytesEnd = Schema_GetWriteBufferLength(ComponentObject);
-			NETWORK_PROFILER(
-				GNetworkProfiler.TrackReplicateProperty(Cmd.Property, (ProfilerBytesEnd - ProfilerBytesStart) * CHAR_BIT, nullptr));
-#endif
-		}
-
-		return true;
-	});
 
 	const uint32 BytesEnd = Schema_GetWriteBufferLength(ComponentObject);
 
@@ -393,23 +380,6 @@ TArray<FWorkerComponentData> ComponentFactory::CreateComponentDatas(UObject* Obj
 			CreateHandoverComponentData(Info.SchemaComponents[SCHEMA_Handover], Object, Info, HandoverChangeState, OutBytesWritten));
 	}
 
-	// #if DO_CHECK
-	// 	if (bWarnAboutInitialOnlyUsage)
-	// 	{
-	// 		VisitRepChanges(RepChangeState, [&](const FRepLayoutCmd& Cmd, const FRepParentCmd& Parent, const int32 Handle) {
-	// 			if (Parent.Condition == COND_InitialOnly)
-	// 			{
-	// 				UE_LOG(LogComponentFactory, Warning,
-	// 					   TEXT("Dynamic component using InitialOnly data. This data will not be sent. Obj (%s) Outer (%s)."),
-	// 					   *Object->GetName(), *GetNameSafe(Object->GetOuter()));
-	// 				return false;
-	// 			}
-	//
-	// 			return true;
-	// 		});
-	// 	}
-	// 	else
-	// #endif // DO_CHECK
 	if (Info.SchemaComponents[SCHEMA_InitialOnly] != SpatialConstants::INVALID_COMPONENT_ID)
 	{
 		if (bInitialOnlyReplicationEnabled && Info.bDynamicSubobject)
