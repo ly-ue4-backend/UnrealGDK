@@ -114,6 +114,8 @@ namespace Improbable.WorkerCoordinator
         public void AddSimulatedPlayer(ClientInfo clientInfo)
         {
             WaitingList.Add(clientInfo);
+
+            Logger.WriteLog($"=======> Add client info ClientName={clientInfo.ClientName}, StartTick={clientInfo.StartTick}, EndTick={clientInfo.EndTick}, curTick={DateTime.Now.Ticks}");
         }
 
         private long NewLifetimeTicks()
@@ -136,6 +138,8 @@ namespace Improbable.WorkerCoordinator
         {
             CurTicks = DateTime.Now.Ticks;
 
+            Logger.WriteLog($"curTicks={CurTicks}, wait={WaitingList.Count}, run={RunningList.Count}");
+
             // Data flow is waiting list -> running list -> waiting list.
             // Checking sequence is running list -> waiting list.
 
@@ -149,6 +153,8 @@ namespace Improbable.WorkerCoordinator
                     // End client.
                     Host?.StopClient(SimulatedClientInfo);
 
+                    Logger.WriteLog($"=======> Stop client info ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
+
                     // Delay 10 seconds to restart.
                     SimulatedClientInfo.StartTick = TimeSpan.FromSeconds(10).Ticks + CurTicks;
 
@@ -161,6 +167,8 @@ namespace Improbable.WorkerCoordinator
                     // Move to wait list.
                     RunningList.RemoveAt(i);
                     WaitingList.Add(SimulatedClientInfo);
+
+                    Logger.WriteLog($"=======> Move to waiting list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                 }
             }
 
@@ -180,6 +188,8 @@ namespace Improbable.WorkerCoordinator
                     // Move to running list.
                     WaitingList.RemoveAt(i);
                     RunningList.Add(SimulatedClientInfo);
+
+                    Logger.WriteLog($"=======> Move to running list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                 }
             }
         }
