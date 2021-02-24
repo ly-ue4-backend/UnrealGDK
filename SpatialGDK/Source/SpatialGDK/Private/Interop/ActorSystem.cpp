@@ -595,7 +595,7 @@ void ActorSystem::EntityRemoved(const Worker_EntityId EntityId)
 
 	RemoveActor(EntityId);
 
-	if (NetDriver->InitialOnlyFilter != nullptr)
+	if (NetDriver->InitialOnlyFilter != nullptr && NetDriver->InitialOnlyFilter->HasInitialOnlyData(EntityId))
 	{
 		NetDriver->InitialOnlyFilter->RemoveInitialOnlyData(EntityId);
 	}
