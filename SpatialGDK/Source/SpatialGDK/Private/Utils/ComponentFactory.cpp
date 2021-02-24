@@ -14,6 +14,7 @@
 #include "Net/NetworkProfiler.h"
 #include "Schema/Interest.h"
 #include "SpatialConstants.h"
+#include "SpatialGDKSettings.h"
 #include "Utils/GDKPropertyMacros.h"
 #include "Utils/InterestFactory.h"
 #include "Utils/RepLayoutUtils.h"
@@ -46,6 +47,7 @@ ComponentFactory::ComponentFactory(bool bInterestDirty, USpatialNetDriver* InNet
 	, ClassInfoManager(InNetDriver->ClassInfoManager)
 	, bInterestHasChanged(bInterestDirty)
 	, bInitialOnlyDataWritten(false)
+	, bInitialOnlyReplicationEnabled(GetDefault<USpatialGDKSettings>()->bEnableInitialOnlyReplicationCondition)
 	, LatencyTracer(InLatencyTracer)
 {
 }
@@ -370,7 +372,7 @@ void ComponentFactory::AddProperty(Schema_Object* Object, Schema_FieldId FieldId
 TArray<FWorkerComponentData> ComponentFactory::CreateComponentDatas(UObject* Object, const FClassInfo& Info,
 																	const FRepChangeState& RepChangeState,
 																	const FHandoverChangeState& HandoverChangeState,
-																	const bool bWarnAboutInitialOnlyUsage, uint32& OutBytesWritten)
+																	uint32& OutBytesWritten)
 {
 	TArray<FWorkerComponentData> ComponentDatas;
 
@@ -391,29 +393,38 @@ TArray<FWorkerComponentData> ComponentFactory::CreateComponentDatas(UObject* Obj
 			CreateHandoverComponentData(Info.SchemaComponents[SCHEMA_Handover], Object, Info, HandoverChangeState, OutBytesWritten));
 	}
 
-#if DO_CHECK
-	if (bWarnAboutInitialOnlyUsage)
+	// #if DO_CHECK
+	// 	if (bWarnAboutInitialOnlyUsage)
+	// 	{
+	// 		VisitRepChanges(RepChangeState, [&](const FRepLayoutCmd& Cmd, const FRepParentCmd& Parent, const int32 Handle) {
+	// 			if (Parent.Condition == COND_InitialOnly)
+	// 			{
+	// 				UE_LOG(LogComponentFactory, Warning,
+	// 					   TEXT("Dynamic component using InitialOnly data. This data will not be sent. Obj (%s) Outer (%s)."),
+	// 					   *Object->GetName(), *GetNameSafe(Object->GetOuter()));
+	// 				return false;
+	// 			}
+	//
+	// 			return true;
+	// 		});
+	// 	}
+	// 	else
+	// #endif // DO_CHECK
+	if (Info.SchemaComponents[SCHEMA_InitialOnly] != SpatialConstants::INVALID_COMPONENT_ID)
 	{
-		VisitRepChanges(RepChangeState, [&](const FRepLayoutCmd& Cmd, const FRepParentCmd& Parent, const int32 Handle) {
-			if (Parent.Condition == COND_InitialOnly)
-			{
-				UE_LOG(LogComponentFactory, Warning,
-					   TEXT("Dynamic component using InitialOnly data. This data will not be sent. Obj (%s) Outer (%s)."),
-					   *Object->GetName(), *GetNameSafe(Object->GetOuter()));
-				return false;
-			}
+		if (bInitialOnlyReplicationEnabled && Info.bDynamicSubobject)
+		{
+			UE_LOG(LogComponentFactory, Warning,
+				   TEXT("Dynamic component using InitialOnly data. This data will not be sent. Obj (%s) Outer (%s)."), *Object->GetName(),
+				   *GetNameSafe(Object->GetOuter()));
+		}
+		else
+		{
+			ComponentDatas.Add(CreateComponentData(Info.SchemaComponents[SCHEMA_InitialOnly], Object, RepChangeState, SCHEMA_InitialOnly,
+												   OutBytesWritten));
 
-			return true;
-		});
-	}
-	else
-#endif // DO_CHECK
-		if (Info.SchemaComponents[SCHEMA_InitialOnly] != SpatialConstants::INVALID_COMPONENT_ID)
-	{
-		ComponentDatas.Add(
-			CreateComponentData(Info.SchemaComponents[SCHEMA_InitialOnly], Object, RepChangeState, SCHEMA_InitialOnly, OutBytesWritten));
-
-		bInitialOnlyDataWritten = true;
+			bInitialOnlyDataWritten = true;
+		}
 	}
 
 	return ComponentDatas;
@@ -491,14 +502,17 @@ TArray<FWorkerComponentUpdate> ComponentFactory::CreateComponentUpdates(UObject*
 
 		if (Info.SchemaComponents[SCHEMA_InitialOnly] != SpatialConstants::INVALID_COMPONENT_ID)
 		{
-			uint32 BytesWritten = 0;
-			FWorkerComponentUpdate MultiClientUpdate =
-				CreateComponentUpdate(Info.SchemaComponents[SCHEMA_InitialOnly], Object, *RepChangeState, SCHEMA_InitialOnly, BytesWritten);
-			if (BytesWritten > 0)
+			if (!Info.bDynamicSubobject || !bInitialOnlyReplicationEnabled)
 			{
-				ComponentUpdates.Add(MultiClientUpdate);
-				OutBytesWritten += BytesWritten;
-				bInitialOnlyDataWritten = true;
+				uint32 BytesWritten = 0;
+				FWorkerComponentUpdate MultiClientUpdate = CreateComponentUpdate(Info.SchemaComponents[SCHEMA_InitialOnly], Object,
+																				 *RepChangeState, SCHEMA_InitialOnly, BytesWritten);
+				if (BytesWritten > 0)
+				{
+					ComponentUpdates.Add(MultiClientUpdate);
+					OutBytesWritten += BytesWritten;
+					bInitialOnlyDataWritten = true;
+				}
 			}
 		}
 	}

@@ -78,6 +78,9 @@ struct FClassInfo
 	// Only for default Subobjects belonging to Actors
 	FName SubobjectName;
 
+	// Only true on class FClassInfos that represent a dynamic subobject
+	bool bDynamicSubobject = false;
+
 	// Only for Subobject classes
 	TArray<TSharedRef<const FClassInfo>> DynamicSubobjectInfo;
 };

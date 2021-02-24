@@ -720,6 +720,9 @@ void WriteServerAuthorityComponentSet(const USchemaDatabase* SchemaDatabase, con
 						case SCHEMA_Handover:
 							Writer.Printf("unreal.generated.{0}HandoverDynamic{1},", SubObjectClassName, SubObjectNumber + 1);
 							break;
+						case SCHEMA_InitialOnly:
+							Writer.Printf("unreal.generated.{0}InitialOnlyDynamic{1},", SubObjectClassName, SubObjectNumber + 1);
+							break;
 						default:
 							break;
 						}
@@ -925,6 +928,9 @@ void WriteComponentSetBySchemaType(const USchemaDatabase* SchemaDatabase, ESchem
 						break;
 					case SCHEMA_Handover:
 						Writer.Printf("unreal.generated.{0}HandoverDynamic{1},", SubObjectClassName, SubObjectNumber + 1);
+						break;
+					case SCHEMA_InitialOnly:
+						Writer.Printf("unreal.generated.{0}InitialOnlyDynamic{1},", SubObjectClassName, SubObjectNumber + 1);
 						break;
 					default:
 						break;

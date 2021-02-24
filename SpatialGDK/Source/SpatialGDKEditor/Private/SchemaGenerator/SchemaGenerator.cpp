@@ -512,12 +512,6 @@ void GenerateSubobjectSchema(FComponentIdGenerator& IdGenerator, UClass* Class, 
 				continue;
 			}
 
-			if (Group == REP_InitialOnly)
-			{
-				// We don't support initial only data on dynamic components.
-				continue;
-			}
-
 			Writer.PrintNewLine();
 
 			Worker_ComponentId ComponentId = 0;

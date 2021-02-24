@@ -30,8 +30,7 @@ public:
 	ComponentFactory(bool bInterestDirty, USpatialNetDriver* InNetDriver, USpatialLatencyTracer* LatencyTracer);
 
 	TArray<FWorkerComponentData> CreateComponentDatas(UObject* Object, const FClassInfo& Info, const FRepChangeState& RepChangeState,
-													  const FHandoverChangeState& HandoverChangeState,
-													  const bool bWarnAboutMissingInitialOnlyComponentIds, uint32& OutBytesWritten);
+													  const FHandoverChangeState& HandoverChangeState, uint32& OutBytesWritten);
 	TArray<FWorkerComponentUpdate> CreateComponentUpdates(UObject* Object, const FClassInfo& Info, Worker_EntityId EntityId,
 														  const FRepChangeState* RepChangeState,
 														  const FHandoverChangeState* HandoverChangeState, uint32& OutBytesWritten);
@@ -69,6 +68,7 @@ private:
 
 	bool bInterestHasChanged;
 	bool bInitialOnlyDataWritten;
+	bool bInitialOnlyReplicationEnabled;
 
 	USpatialLatencyTracer* LatencyTracer;
 };
