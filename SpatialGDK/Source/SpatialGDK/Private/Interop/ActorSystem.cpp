@@ -712,27 +712,9 @@ void ActorSystem::HandleIndividualAddComponent(const Worker_EntityId EntityId, c
 	}
 
 	// Otherwise this is a dynamically attached component. We need to make sure we have all related components before creation.
-	PendingDynamicSubobjectComponents.Add(MakeTuple(static_cast<Worker_EntityId_Key>(EntityId), ComponentId));
+	PendingDynamicSubobjectComponents.FindOrAdd(EntityId).Emplace(ComponentId);
 
-	bool bReadyToCreate = true;
-	ForAllSchemaComponentTypes([&](ESchemaComponentType Type) {
-		Worker_ComponentId SchemaComponentId = Info.SchemaComponents[Type];
-
-		// TODO (UNR-4460): This should not require checking out all the subobject components, only the ones
-		// we could check out. If data is always present, we could send that last and attach subobjects only when we
-		// see data.
-		if (SchemaComponentId == SpatialConstants::INVALID_COMPONENT_ID)
-		{
-			return;
-		}
-
-		if (!PendingDynamicSubobjectComponents.Contains(MakeTuple(static_cast<Worker_EntityId_Key>(EntityId), SchemaComponentId)))
-		{
-			bReadyToCreate = false;
-		}
-	});
-
-	if (bReadyToCreate)
+	if (ComponentId == Info.SchemaComponents[SCHEMA_Data])
 	{
 		AttachDynamicSubobject(Actor, EntityId, Info);
 	}
@@ -757,18 +739,12 @@ void ActorSystem::AttachDynamicSubobject(AActor* Actor, Worker_EntityId EntityId
 
 	Channel->CreateSubObjects.Add(Subobject);
 
-	ForAllSchemaComponentTypes([&](ESchemaComponentType Type) {
-		Worker_ComponentId ComponentId = Info.SchemaComponents[Type];
-
-		if (ComponentId == SpatialConstants::INVALID_COMPONENT_ID)
-		{
-			return;
-		}
-
+	for (auto ComponentId : *PendingDynamicSubobjectComponents.Find(EntityId))
+	{
 		ApplyComponentData(*Channel, *Subobject, ComponentId,
 						   SubView->GetView()[EntityId].Components.FindByPredicate(ComponentIdEquality{ ComponentId })->GetUnderlying());
-		PendingDynamicSubobjectComponents.Remove(MakeTuple(static_cast<Worker_EntityId_Key>(EntityId), ComponentId));
-	});
+	}
+	PendingDynamicSubobjectComponents.Remove(EntityId);
 
 	// Resolve things like RepNotify or RPCs after applying component data.
 	ResolvePendingOperations(Subobject, SubobjectRef);
@@ -1514,17 +1490,10 @@ void ActorSystem::RemoveActor(const Worker_EntityId EntityId)
 	// Cleanup pending add components if any exist.
 	if (USpatialActorChannel* ActorChannel = NetDriver->GetActorChannelByEntityId(EntityId))
 	{
-		// If we have any pending subobjects on the channel
+		// If we have any pending subobjects on the channel, remove them
 		if (ActorChannel->PendingDynamicSubobjects.Num() > 0)
 		{
-			// Then iterate through all pending subobjects and remove entries relating to this entity.
-			for (const auto& Pair : PendingDynamicSubobjectComponents)
-			{
-				if (Pair.Key == EntityId)
-				{
-					PendingDynamicSubobjectComponents.Remove(Pair);
-				}
-			}
+			PendingDynamicSubobjectComponents.Remove(EntityId);
 		}
 	}
 

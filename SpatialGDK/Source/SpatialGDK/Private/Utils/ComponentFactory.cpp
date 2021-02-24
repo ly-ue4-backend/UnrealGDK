@@ -53,8 +53,8 @@ ComponentFactory::ComponentFactory(bool bInterestDirty, USpatialNetDriver* InNet
 }
 
 uint32 ComponentFactory::FillSchemaObject(Schema_Object* ComponentObject, UObject* Object, const FRepChangeState& Changes,
-	ESchemaComponentType PropertyGroup, bool bIsInitialData, TraceKey* OutLatencyTraceId,
-	TArray<Schema_FieldId>* ClearedIds /*= nullptr*/)
+										  ESchemaComponentType PropertyGroup, bool bIsInitialData, TraceKey* OutLatencyTraceId,
+										  TArray<Schema_FieldId>* ClearedIds /*= nullptr*/)
 {
 	SCOPE_CYCLE_COUNTER(STAT_FactoryProcessPropertyUpdates);
 
@@ -65,7 +65,7 @@ uint32 ComponentFactory::FillSchemaObject(Schema_Object* ComponentObject, UObjec
 	{
 		FChangelistIterator ChangelistIterator(Changes.RepChanged, 0);
 		FRepHandleIterator HandleIterator(static_cast<UStruct*>(Changes.RepLayout.GetOwner()), ChangelistIterator, Changes.RepLayout.Cmds,
-			Changes.RepLayout.BaseHandleToCmdIndex, 0, 1, 0, Changes.RepLayout.Cmds.Num() - 1);
+										  Changes.RepLayout.BaseHandleToCmdIndex, 0, 1, 0, Changes.RepLayout.Cmds.Num() - 1);
 		while (HandleIterator.NextHandle())
 		{
 			const FRepLayoutCmd& Cmd = Changes.RepLayout.Cmds[HandleIterator.CmdIndex];
@@ -87,8 +87,8 @@ uint32 ComponentFactory::FillSchemaObject(Schema_Object* ComponentObject, UObjec
 					if (*OutLatencyTraceId != InvalidTraceKey)
 					{
 						UE_LOG(LogComponentFactory, Warning,
-							TEXT("%s property trace being dropped because too many active on this actor (%s)"), *Cmd.Property->GetName(),
-							*Object->GetName());
+							   TEXT("%s property trace being dropped because too many active on this actor (%s)"), *Cmd.Property->GetName(),
+							   *Object->GetName());
 						LatencyTracer->WriteAndEndTrace(*OutLatencyTraceId, TEXT("Multiple actor component traces not supported"), true);
 					}
 					*OutLatencyTraceId = PropertyKey;
@@ -117,7 +117,7 @@ uint32 ComponentFactory::FillSchemaObject(Schema_Object* ComponentObject, UObjec
 						FSpatialNetBitWriter ValueDataWriter(PackageMap);
 
 						if (FSpatialNetDeltaSerializeInfo::DeltaSerializeWrite(NetDriver, ValueDataWriter, Object, Parent.ArrayIndex,
-							Parent.Property, NetDeltaStruct)
+																			   Parent.Property, NetDeltaStruct)
 							|| bIsInitialData)
 						{
 							AddBytesToSchema(ComponentObject, HandleIterator.Handle, ValueDataWriter);
@@ -363,11 +363,6 @@ TArray<FWorkerComponentData> ComponentFactory::CreateComponentDatas(UObject* Obj
 {
 	TArray<FWorkerComponentData> ComponentDatas;
 
-	if (Info.SchemaComponents[SCHEMA_Data] != SpatialConstants::INVALID_COMPONENT_ID)
-	{
-		ComponentDatas.Add(CreateComponentData(Info.SchemaComponents[SCHEMA_Data], Object, RepChangeState, SCHEMA_Data, OutBytesWritten));
-	}
-
 	if (Info.SchemaComponents[SCHEMA_OwnerOnly] != SpatialConstants::INVALID_COMPONENT_ID)
 	{
 		ComponentDatas.Add(
@@ -396,6 +391,11 @@ TArray<FWorkerComponentData> ComponentFactory::CreateComponentDatas(UObject* Obj
 			bInitialOnlyDataWritten = true;
 		}
 	}
+
+	// Write the data component add last so we can use it's presence as a marker component to indicate that the rest of the components have
+	// arrived.
+	check(Info.SchemaComponents[SCHEMA_Data] != SpatialConstants::INVALID_COMPONENT_ID);
+	ComponentDatas.Add(CreateComponentData(Info.SchemaComponents[SCHEMA_Data], Object, RepChangeState, SCHEMA_Data, OutBytesWritten));
 
 	return ComponentDatas;
 }
