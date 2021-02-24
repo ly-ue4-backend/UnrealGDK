@@ -23,9 +23,6 @@ namespace Improbable.WorkerCoordinator
     {
         void StartClient(ClientInfo clientInfo);
         void StopClient(ClientInfo clientInfo);
-
-        Process GetActiveProcess(string clientName);
-        void RemoveActiveProcess(string clientName);
     }
 
     internal class LifetimeComponent
@@ -41,7 +38,6 @@ namespace Improbable.WorkerCoordinator
         private int MaxLifetime;
         private int MinLifetime;
         private List<ClientInfo> WaitingList;
-        private List<ClientInfo> StartingList;
         private List<ClientInfo> RunningList;
 
         private int TickIntervalSeconds = 1;
@@ -106,7 +102,6 @@ namespace Improbable.WorkerCoordinator
             Logger = logger;
 
             WaitingList = new List<ClientInfo>();
-            StartingList = new List<ClientInfo>();
             RunningList = new List<ClientInfo>();
 
             Random = new Random(Guid.NewGuid().GetHashCode());
@@ -144,10 +139,10 @@ namespace Improbable.WorkerCoordinator
         {
             CurTicks = DateTime.Now.Ticks;
 
-            Logger.WriteLog($"curTicks={CurTicks}, wait={WaitingList.Count}, start={StartingList.Count}, run={RunningList.Count}");
+            Logger.WriteLog($"curTicks={CurTicks}, wait={WaitingList.Count}, run={RunningList.Count}");
 
-            // Data flow is waiting list -> starting list -> running list -> waiting list.
-            // Checking sequence is running list -> starting list -> waiting list.
+            // Data flow is waiting list -> running list -> waiting list.
+            // Checking sequence is running list -> waiting list.
 
             // Running list.
             Length = RunningList.Count;
@@ -178,40 +173,6 @@ namespace Improbable.WorkerCoordinator
                 }
             }
 
-            // Starting list.
-            Length = StartingList.Count;
-            for (int i = Length - 1; i >= 0; --i)
-            {
-                SimulatedClientInfo = StartingList[i];
-                //ClientProcess = Host?.GetActiveProcess(SimulatedClientInfo.ClientName);
-                //if (ClientProcess != null && ClientProcess.HasExited)
-                //{
-                //    Host?.RemoveActiveProcess(SimulatedClientInfo.ClientName);
-                {
-                    StartingList.RemoveAt(i);
-
-                    //if (ClientProcess.ExitCode == 0)
-                    {
-                        // move it to running list.
-                        SimulatedClientInfo.EndTick = CurTicks + NewLifetimeTicks();
-                        RunningList.Add(SimulatedClientInfo);
-
-                        Logger.WriteLog($"=======> move to running list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
-                    }
-                    //else
-                    //{
-                    //    // Try restart by moving it back to waiting list.
-                    //    WaitingList.Add(SimulatedClientInfo);
-
-                    //    Logger.WriteLog($"=======> move back to waiting list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
-                    //}
-                }
-                //else
-                //{
-                //    Logger.WriteLog($"running list process is null name={SimulatedClientInfo.ClientName}, host={Host == null}");
-                //}
-            }
-
             // Waiting list.
             Length = WaitingList.Count;
             for (int i = Length - 1; i >= 0; --i)
@@ -222,11 +183,14 @@ namespace Improbable.WorkerCoordinator
                     // Start client.
                     Host?.StartClient(SimulatedClientInfo);
 
+                    // Update lifetime.
+                    SimulatedClientInfo.EndTick = CurTicks + NewLifetimeTicks();
+
                     // Move to running list.
                     WaitingList.RemoveAt(i);
-                    StartingList.Add(SimulatedClientInfo);
+                    RunningList.Add(SimulatedClientInfo);
 
-                    Logger.WriteLog($"=======> move to starting list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
+                    Logger.WriteLog($"=======> move to running list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                 }
             }
         }
