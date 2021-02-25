@@ -8,7 +8,7 @@
 #include "SpatialGDKFunctionalTests/SpatialGDK/SpatialTestInitialOnly/SpatialTestInitialOnlyForSpawnComponents.h"
 
 USpatialInitialOnlyMap::USpatialInitialOnlyMap()
-	: UGeneratedTestMap(EMapCategory::CI_PREMERGE, TEXT("SpatialInitialOnlyMap"))
+	: UGeneratedTestMap(EMapCategory::NO_CI, TEXT("SpatialInitialOnlyMap"))
 {
 }
 
