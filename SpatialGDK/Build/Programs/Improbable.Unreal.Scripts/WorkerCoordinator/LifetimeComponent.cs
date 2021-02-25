@@ -150,17 +150,8 @@ namespace Improbable.WorkerCoordinator
                 SimulatedClientInfo = RunningList[i];
                 if (CurTicks >= SimulatedClientInfo.EndTick)
                 {
-                    Logger.WriteLog("Start to stop client");
-
                     // End client.
-                    try
-                    {
-                        Host?.StopClient(SimulatedClientInfo);
-                    }
-                    catch(Exception e)
-                    {
-                        Logger.WriteLog($"Stop client exception: msg={e.Message}, trace={e.StackTrace}");
-                    }
+                    Host?.StopClient(SimulatedClientInfo);
 
                     Logger.WriteLog($"=======> Stop client info ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
 
