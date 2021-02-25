@@ -714,6 +714,7 @@ void ActorSystem::HandleIndividualAddComponent(const Worker_EntityId EntityId, c
 	// Otherwise this is a dynamically attached component. We need to make sure we have all related components before creation.
 	PendingDynamicSubobjectComponents.FindOrAdd(EntityId).Emplace(ComponentId);
 
+	// We ensure that the data component is added last, so once it's in view we're ready to attach the Unreal subobject
 	if (ComponentId == Info.SchemaComponents[SCHEMA_Data])
 	{
 		AttachDynamicSubobject(Actor, EntityId, Info);

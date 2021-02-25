@@ -3136,7 +3136,7 @@ void USpatialNetDriver::RegisterSpatialDebugger(ASpatialDebugger* InSpatialDebug
 		else
 		{
 			// Ideally we filter for the SPATIAL_DEBUGGING_COMPONENT_ID here as well, however as filters aren't compositional currently, and
-			// it's more important to Actor correctness, for now we just rely on the existing Actor Filtering.
+			// it's more important for Actor correctness, for now we just rely on the existing Actor Filtering.
 			DebuggerSubViewPtr =
 				&Connection->GetCoordinator().CreateSubView(SpatialConstants::ACTOR_TAG_COMPONENT_ID, ActorFilter, ActorRefreshCallbacks);
 		}
