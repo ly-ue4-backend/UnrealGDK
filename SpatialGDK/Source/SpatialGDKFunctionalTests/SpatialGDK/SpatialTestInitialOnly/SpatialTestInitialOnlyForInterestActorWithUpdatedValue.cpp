@@ -10,10 +10,10 @@
 
 /**
  * Basic initial only test case.
- * Spawn a actor without player's interest, change initial only & replicate value at server side, move player to this actor, check client
+ * Spawn an actor without player's interest, change initial only & replicate value at server side, move player to this actor, check client
  * side value.
  *
- * step 1: server 1 create a cube with replicate property rep1=1 and initial only property initail1=1.
+ * step 1: server 1 create a cube with replicate property rep1=1 and initial only property initial1=1.
  * step 2: server 1 change rep1=2, initial1=2.
  * step 3: client 1 move to cube.
  * step 4: client 1 should got this: rep1=2, initial1=2.
@@ -42,6 +42,8 @@ void ASpatialTestInitialOnlyForInterestActorWithUpdatedValue::PrepareTest()
 		// character moves, decreasing the overall duration of the test
 		PreviousMaximumDistanceThreshold = GetDefault<USpatialGDKSettings>()->PositionUpdateThresholdMaxCentimeters;
 		GetMutableDefault<USpatialGDKSettings>()->PositionUpdateThresholdMaxCentimeters = 0.0f;
+
+		AssertTrue(GetDefault<USpatialGDKSettings>()->bEnableInitialOnlyReplicationCondition, TEXT("Initial Only Enabled"));
 
 		// Spawn the TestMovementCharacter actor for Client 1 to possess.
 		ASpatialFunctionalTestFlowController* FlowController = GetFlowController(ESpatialFunctionalTestWorkerType::Client, 1);
@@ -88,7 +90,7 @@ void ASpatialTestInitialOnlyForInterestActorWithUpdatedValue::PrepareTest()
 	AddStep(
 		TEXT("Check changed value."), FWorkerDefinition::Client(1),
 		[this]() -> bool {
-			bool IsReady = false;
+			bool bIsReady = false;
 			TArray<AActor*> SpawnActors;
 			UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpatialTestInitialOnlySpawnActor::StaticClass(), SpawnActors);
 			for (AActor* Actor : SpawnActors)
@@ -96,10 +98,10 @@ void ASpatialTestInitialOnlyForInterestActorWithUpdatedValue::PrepareTest()
 				ASpatialTestInitialOnlySpawnActor* SpawnActor = Cast<ASpatialTestInitialOnlySpawnActor>(Actor);
 				if (SpawnActor != nullptr)
 				{
-					IsReady = true;
+					bIsReady = true;
 				}
 			}
-			return IsReady;
+			return bIsReady;
 		},
 		[this]() {
 			TArray<AActor*> SpawnActors;

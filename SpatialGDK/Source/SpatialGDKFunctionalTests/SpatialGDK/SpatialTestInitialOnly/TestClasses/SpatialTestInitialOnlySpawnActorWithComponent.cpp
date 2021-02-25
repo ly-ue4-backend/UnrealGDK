@@ -8,25 +8,15 @@ ASpatialTestInitialOnlySpawnActorWithComponent::ASpatialTestInitialOnlySpawnActo
 {
 	bReplicates = true;
 	bAlwaysRelevant = true;
+
+	InitialOnlyComponent = CreateDefaultSubobject<USpatialTestInitialOnlySpawnComponent>(FName("InitialOnlyComponent"));
+
+	RootComponent = InitialOnlyComponent;
 }
 
 void ASpatialTestInitialOnlySpawnActorWithComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ASpatialTestInitialOnlySpawnActorWithComponent, OnSpawnComponent);
-	DOREPLIFETIME(ASpatialTestInitialOnlySpawnActorWithComponent, PostInitializeComponent);
-	DOREPLIFETIME(ASpatialTestInitialOnlySpawnActorWithComponent, LateAddedComponent);
-}
-
-void ASpatialTestInitialOnlySpawnActorWithComponent::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	if (HasAuthority() && PostInitializeComponent == nullptr)
-	{
-		PostInitializeComponent = NewObject<USpatialTestInitialOnlySpawnComponent>(this, TEXT("PostInitializeComponent1"));
-		PostInitializeComponent->SetupAttachment(GetRootComponent());
-		PostInitializeComponent->RegisterComponent();
-	}
+	DOREPLIFETIME(ASpatialTestInitialOnlySpawnActorWithComponent, InitialOnlyComponent);
 }

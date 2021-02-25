@@ -10,14 +10,13 @@
 
 /**
  * Basic initial only test case.
- * Spawn a actor with components in front of player, change initial only & replicate value at server side, check client side value.
+ * Spawn an actor with components in front of player, change initial only & replicate value at server side, check client side value.
  *
- * step 1: server 1 create a cube with replicate property rep1=1 and initial only property initail1=1.
- * step 2: server 1 add LateAddedComponent.
- * step 3: client 1 checkout actor's components and print these properties, should got this: rep1=1, initial1=1.
- * step 4: server 1 change rep1=2, initial1=2.
- * step 5: client 1 should got this: rep1=2, initial1=1.
- * step 6: clean up.
+ * step 1: server 1 create a cube with replicate property rep1=1 and initial only property initial1=1.
+ * step 2: client 1 checkout actor's components and print these properties, should got this: rep1=1, initial1=1.
+ * step 3: server 1 change rep1=2, initial1=2.
+ * step 4: client 1 should got this: rep1=2, initial1=1.
+ * step 5: clean up.
  */
 
 ASpatialTestInitialOnlyForSpawnComponents::ASpatialTestInitialOnlyForSpawnComponents()
@@ -35,7 +34,6 @@ void ASpatialTestInitialOnlyForSpawnComponents::PrepareTest()
 		// Spawn cube
 		ASpatialTestInitialOnlySpawnActorWithComponent* SpawnActor = GetWorld()->SpawnActor<ASpatialTestInitialOnlySpawnActorWithComponent>(
 			FVector(-50.0f, 0.0f, 40.0f), FRotator::ZeroRotator, FActorSpawnParameters());
-		SpawnActor->OnSpawnComponent = CreateAndAttachSpawnComponentToActor(SpawnActor, TEXT("OnSpawnComponent1"));
 
 		RegisterAutoDestroyActor(SpawnActor);
 
@@ -43,6 +41,8 @@ void ASpatialTestInitialOnlyForSpawnComponents::PrepareTest()
 		// character moves, decreasing the overall duration of the test
 		PreviousMaximumDistanceThreshold = GetDefault<USpatialGDKSettings>()->PositionUpdateThresholdMaxCentimeters;
 		GetMutableDefault<USpatialGDKSettings>()->PositionUpdateThresholdMaxCentimeters = 0.0f;
+
+		AssertTrue(GetDefault<USpatialGDKSettings>()->bEnableInitialOnlyReplicationCondition, TEXT("Initial Only Enabled"));
 
 		// Spawn the TestMovementCharacter actor for Client 1 to possess.
 		ASpatialFunctionalTestFlowController* FlowController = GetFlowController(ESpatialFunctionalTestWorkerType::Client, 1);
@@ -55,21 +55,6 @@ void ASpatialTestInitialOnlyForSpawnComponents::PrepareTest()
 
 		RegisterAutoDestroyActor(TestCharacter);
 		PlayerController->Possess(TestCharacter);
-
-		FinishStep();
-	});
-
-	AddStep(TEXT("Later add component"), FWorkerDefinition::Server(1), nullptr, [this]() {
-		TArray<AActor*> SpawnActors;
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASpatialTestInitialOnlySpawnActorWithComponent::StaticClass(), SpawnActors);
-		for (AActor* Actor : SpawnActors)
-		{
-			ASpatialTestInitialOnlySpawnActorWithComponent* SpawnActor = Cast<ASpatialTestInitialOnlySpawnActorWithComponent>(Actor);
-			if (SpawnActor != nullptr)
-			{
-				SpawnActor->LateAddedComponent = CreateAndAttachSpawnComponentToActor(SpawnActor, TEXT("LateComponent"));
-			}
-		}
 
 		FinishStep();
 	});
@@ -89,8 +74,7 @@ void ASpatialTestInitialOnlyForSpawnComponents::PrepareTest()
 					IsReady = false;
 					break;
 				}
-				else if (SpawnActor->OnSpawnComponent == nullptr || SpawnActor->PostInitializeComponent == nullptr
-						 || SpawnActor->LateAddedComponent == nullptr)
+				else if (SpawnActor->InitialOnlyComponent == nullptr)
 				{
 					IsReady = false;
 					break;
@@ -107,16 +91,9 @@ void ASpatialTestInitialOnlyForSpawnComponents::PrepareTest()
 				ASpatialTestInitialOnlySpawnActorWithComponent* SpawnActor = Cast<ASpatialTestInitialOnlySpawnActorWithComponent>(Actor);
 				if (SpawnActor != nullptr)
 				{
-					AssertTrue(SpawnActor->OnSpawnComponent->Int_Initial == 1, TEXT("Check OnSpawnComponent.Int_Initial value."));
-					AssertTrue(SpawnActor->OnSpawnComponent->Int_Replicate == 1, TEXT("Check OnSpawnComponent.Int_Replicate value."));
-
-					AssertTrue(SpawnActor->PostInitializeComponent->Int_Initial == 1,
-							   TEXT("Check PostInitializeComponent.Int_Initial value."));
-					AssertTrue(SpawnActor->PostInitializeComponent->Int_Replicate == 1,
-							   TEXT("Check PostInitializeComponent.Int_Replicate value."));
-
-					AssertTrue(SpawnActor->LateAddedComponent->Int_Initial == 1, TEXT("Check LateAddedComponent.Int_Initial value."));
-					AssertTrue(SpawnActor->LateAddedComponent->Int_Replicate == 1, TEXT("Check LateAddedComponent.Int_Replicate value."));
+					AssertTrue(SpawnActor->InitialOnlyComponent->Int_Initial == 1, TEXT("Check InitialOnlyComponent.Int_Initial value."));
+					AssertTrue(SpawnActor->InitialOnlyComponent->Int_Replicate == 1,
+							   TEXT("Check InitialOnlyComponent.Int_Replicate value."));
 				}
 			}
 
@@ -131,14 +108,8 @@ void ASpatialTestInitialOnlyForSpawnComponents::PrepareTest()
 			ASpatialTestInitialOnlySpawnActorWithComponent* SpawnActor = Cast<ASpatialTestInitialOnlySpawnActorWithComponent>(Actor);
 			if (SpawnActor != nullptr)
 			{
-				SpawnActor->OnSpawnComponent->Int_Initial = 2;
-				SpawnActor->OnSpawnComponent->Int_Replicate = 2;
-
-				SpawnActor->PostInitializeComponent->Int_Initial = 2;
-				SpawnActor->PostInitializeComponent->Int_Replicate = 2;
-
-				SpawnActor->LateAddedComponent->Int_Initial = 2;
-				SpawnActor->LateAddedComponent->Int_Replicate = 2;
+				SpawnActor->InitialOnlyComponent->Int_Initial = 2;
+				SpawnActor->InitialOnlyComponent->Int_Replicate = 2;
 			}
 		}
 
@@ -153,15 +124,8 @@ void ASpatialTestInitialOnlyForSpawnComponents::PrepareTest()
 			ASpatialTestInitialOnlySpawnActorWithComponent* SpawnActor = Cast<ASpatialTestInitialOnlySpawnActorWithComponent>(Actor);
 			if (SpawnActor != nullptr)
 			{
-				AssertTrue(SpawnActor->OnSpawnComponent->Int_Initial == 1, TEXT("Check OnSpawnComponent.Int_Initial value."));
-				AssertTrue(SpawnActor->OnSpawnComponent->Int_Replicate == 2, TEXT("Check OnSpawnComponent.Int_Replicate value."));
-
-				AssertTrue(SpawnActor->PostInitializeComponent->Int_Initial == 1, TEXT("Check PostInitializeComponent.Int_Initial value."));
-				AssertTrue(SpawnActor->PostInitializeComponent->Int_Replicate == 2,
-						   TEXT("Check PostInitializeComponent.Int_Replicate value."));
-
-				AssertTrue(SpawnActor->LateAddedComponent->Int_Initial == 1, TEXT("Check LateAddedComponent.Int_Initial value."));
-				AssertTrue(SpawnActor->LateAddedComponent->Int_Replicate == 2, TEXT("Check LateAddedComponent.Int_Replicate value."));
+				AssertTrue(SpawnActor->InitialOnlyComponent->Int_Initial == 1, TEXT("Check InitialOnlyComponent.Int_Initial value."));
+				AssertTrue(SpawnActor->InitialOnlyComponent->Int_Replicate == 2, TEXT("Check InitialOnlyComponent.Int_Replicate value."));
 			}
 		}
 
@@ -183,15 +147,4 @@ void ASpatialTestInitialOnlyForSpawnComponents::FinishTest(EFunctionalTestResult
 	// Restoring the PositionUpdateThresholdMaxCentimeters here catches most but not all of the cases when the test failing would cause
 	// PositionUpdateThresholdMaxCentimeters to be changed.
 	GetMutableDefault<USpatialGDKSettings>()->PositionUpdateThresholdMaxCentimeters = PreviousMaximumDistanceThreshold;
-}
-
-USpatialTestInitialOnlySpawnComponent* ASpatialTestInitialOnlyForSpawnComponents::CreateAndAttachSpawnComponentToActor(AActor* Actor,
-																													   FName Name)
-{
-	USpatialTestInitialOnlySpawnComponent* NewDynamicComponent = NewObject<USpatialTestInitialOnlySpawnComponent>(Actor, Name);
-
-	NewDynamicComponent->SetupAttachment(Actor->GetRootComponent());
-	NewDynamicComponent->RegisterComponent();
-
-	return NewDynamicComponent;
 }

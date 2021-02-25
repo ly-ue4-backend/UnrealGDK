@@ -10,10 +10,10 @@
 
 /**
  * Basic initial only test case.
- * Spawn a actor without player's interest, player move to actor, change initial only & replicate value at server side, check client side
+ * Spawn an actor without player's interest, player move to actor, change initial only & replicate value at server side, check client side
  * value.
  *
- * step 1: server 1 create a cube with replicate property rep1=1 and initial only property initail1=1.
+ * step 1: server 1 create a cube with replicate property rep1=1 and initial only property initial1=1.
  * step 2: client 1 move to cube.
  * step 3: client 1 should got this: rep1=1, initial1=1.
  * step 4: server 1 change rep1=2, initial1=2.
@@ -43,6 +43,8 @@ void ASpatialTestInitialOnlyForInterestActor::PrepareTest()
 		// character moves, decreasing the overall duration of the test
 		PreviousMaximumDistanceThreshold = GetDefault<USpatialGDKSettings>()->PositionUpdateThresholdMaxCentimeters;
 		GetMutableDefault<USpatialGDKSettings>()->PositionUpdateThresholdMaxCentimeters = 0.0f;
+
+		AssertTrue(GetDefault<USpatialGDKSettings>()->bEnableInitialOnlyReplicationCondition, TEXT("Initial Only Enabled"));
 
 		// Spawn the TestMovementCharacter actor for Client 1 to possess.
 		ASpatialFunctionalTestFlowController* FlowController = GetFlowController(ESpatialFunctionalTestWorkerType::Client, 1);

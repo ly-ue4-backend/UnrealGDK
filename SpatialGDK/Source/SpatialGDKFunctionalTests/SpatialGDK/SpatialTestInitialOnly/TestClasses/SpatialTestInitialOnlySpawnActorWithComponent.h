@@ -17,19 +17,8 @@ class ASpatialTestInitialOnlySpawnActorWithComponent : public AReplicatedTestAct
 public:
 	ASpatialTestInitialOnlySpawnActorWithComponent();
 
-	// In the test, this Component is created and attached after spawning this Actor.
 	UPROPERTY(Replicated)
-	USpatialTestInitialOnlySpawnComponent* OnSpawnComponent;
-
-	// In the test, this Component is created and attached as part of PostInitializeComponents.
-	UPROPERTY(Replicated)
-	USpatialTestInitialOnlySpawnComponent* PostInitializeComponent;
-
-	// In the test, this Component is created and attached one second after spawning this Actor.
-	UPROPERTY(Replicated)
-	USpatialTestInitialOnlySpawnComponent* LateAddedComponent;
+	USpatialTestInitialOnlySpawnComponent* InitialOnlyComponent;
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	virtual void PostInitializeComponents() override;
 };
