@@ -30,6 +30,7 @@ namespace Improbable.WorkerCoordinator
         // Arguments for lifetime management.
         public const string MaxLifetimeArg = "max_lifetime";
         public const string MinLifetimeArg = "min_lifetime";
+        public const string RestartAfterSecondsArg = "restart_after_seconds";
         public const string UseNewSimulatedPlayerArg = "use_new_simulated_player";
 
         // Lifetime management parameters.
@@ -37,6 +38,7 @@ namespace Improbable.WorkerCoordinator
         private bool UseNewSimulatedPlayer;
         private int MaxLifetime;
         private int MinLifetime;
+        private int RestartAfterSeconds;
         private List<ClientInfo> WaitingList;
         private List<ClientInfo> RunningList;
 
@@ -76,6 +78,14 @@ namespace Improbable.WorkerCoordinator
                 numArgs++;
             }
 
+            // Use 60 seconds as default.
+            int restartAfterSeconds = 60;
+            if (Util.HasIntegerArgument(args, RestartAfterSecondsArg))
+            {
+                restartAfterSeconds = Util.GetIntegerArgument(args, RestartAfterSecondsArg);
+                numArgs++;
+            }
+
             // Default do not use new simulated player to restart.
             int useNewSimulatedPlayer = 0;
             if (Util.HasIntegerArgument(args, UseNewSimulatedPlayerArg))
@@ -87,17 +97,18 @@ namespace Improbable.WorkerCoordinator
             // Disable function by do not define max lifetime.
             if (maxLifetime > 0)
             {
-                return new LifetimeComponent(maxLifetime, minLifetime, useNewSimulatedPlayer > 0, logger);
+                return new LifetimeComponent(maxLifetime, minLifetime, restartAfterSeconds, useNewSimulatedPlayer > 0, logger);
             }
 
             return null;
         }
 
-        private LifetimeComponent(int maxLifetime, int minLifetime, bool useNewSimulatedPlayer, Logger logger)
+        private LifetimeComponent(int maxLifetime, int minLifetime, int restartAfterSeconds, bool useNewSimulatedPlayer, Logger logger)
         {
             UseNewSimulatedPlayer = useNewSimulatedPlayer;
             MaxLifetime = maxLifetime;
             MinLifetime = minLifetime;
+            RestartAfterSeconds = restartAfterSeconds;
             Logger = logger;
 
             WaitingList = new List<ClientInfo>();
