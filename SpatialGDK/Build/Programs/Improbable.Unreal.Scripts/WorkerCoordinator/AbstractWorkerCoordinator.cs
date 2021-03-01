@@ -99,16 +99,14 @@ namespace Improbable.WorkerCoordinator
 
             var incorrectlyFinishedProcesses = finishedProcesses.Where(process => process.ExitCode != 0).ToList();
 
-            if (incorrectlyFinishedProcesses.Count == 0 && finishedProcesses.Count == ActiveProcesses.Count)
-            {
-                Logger.WriteLog($"Player exit without exit code, and finishedProcesses.Count={finishedProcesses.Count} ");
-                return;
-            }
-
             foreach (var process in incorrectlyFinishedProcesses)
             {
-                Logger.WriteLog($"Restarting simulated player after it failed with exit code {process.ExitCode}");
-                process.Start();
+                // StopSimulatedClient.sh will cause 137 code.
+                if (process.ExitCode != 137)
+                {
+                    Logger.WriteLog($"Restarting simulated player after it failed with exit code {process.ExitCode}");
+                    process.Start();
+                }
             }
         }
     }
