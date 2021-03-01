@@ -92,5 +92,19 @@ namespace Improbable.WorkerCoordinator
                 Thread.Sleep(TimeSpan.FromMilliseconds(PollSimulatedPlayerProcessIntervalMillis));
             }
         }
+
+        public void CheckPlayerStatus()
+        {
+            var finishedProcesses = ActiveProcesses.Where(process => process.HasExited).ToList();
+
+            var incorrectlyFinishedProcesses = finishedProcesses.Where(process => process.ExitCode != 0).ToList();
+
+            Logger.WriteLog($"CheckPlayerStatus: fc={finishedProcesses.Count}, ic={incorrectlyFinishedProcesses.Count}, ac={ActiveProcesses.Count}");
+
+            foreach (var process in incorrectlyFinishedProcesses)
+            {
+                Logger.WriteLog($"Find incorrectly finished process with exit code {process.ExitCode}");
+            }
+        }
     }
 }

@@ -23,6 +23,8 @@ namespace Improbable.WorkerCoordinator
     {
         void StartClient(ClientInfo clientInfo);
         void StopClient(ClientInfo clientInfo);
+
+        void CheckPlayerStatus();
     }
 
     internal class LifetimeComponent
@@ -159,6 +161,9 @@ namespace Improbable.WorkerCoordinator
                 SimulatedClientInfo = RunningList[i];
                 if (CurTicks >= SimulatedClientInfo.EndTick)
                 {
+                    // Check player status before stop client.
+                    Host?.CheckPlayerStatus();
+
                     // End client.
                     Host?.StopClient(SimulatedClientInfo);
 
