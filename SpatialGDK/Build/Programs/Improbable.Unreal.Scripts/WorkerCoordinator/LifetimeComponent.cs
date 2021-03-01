@@ -154,6 +154,9 @@ namespace Improbable.WorkerCoordinator
             // Data flow is waiting list -> running list -> waiting list.
             // Checking sequence is running list -> waiting list.
 
+            // Check player status, restart player client if it exit early.
+            Host?.CheckPlayerStatus();
+
             // Running list.
             Length = RunningList.Count;
             for (int i = Length - 1; i >= 0; --i)
@@ -161,9 +164,6 @@ namespace Improbable.WorkerCoordinator
                 SimulatedClientInfo = RunningList[i];
                 if (CurTicks >= SimulatedClientInfo.EndTick)
                 {
-                    // Check player status before stop client.
-                    Host?.CheckPlayerStatus();
-
                     // End client.
                     Host?.StopClient(SimulatedClientInfo);
 

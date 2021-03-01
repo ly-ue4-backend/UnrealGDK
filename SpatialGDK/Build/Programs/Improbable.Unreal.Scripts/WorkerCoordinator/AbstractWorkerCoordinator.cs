@@ -99,11 +99,16 @@ namespace Improbable.WorkerCoordinator
 
             var incorrectlyFinishedProcesses = finishedProcesses.Where(process => process.ExitCode != 0).ToList();
 
-            Logger.WriteLog($"CheckPlayerStatus: fc={finishedProcesses.Count}, ic={incorrectlyFinishedProcesses.Count}, ac={ActiveProcesses.Count}");
+            if (incorrectlyFinishedProcesses.Count == 0 && finishedProcesses.Count == ActiveProcesses.Count)
+            {
+                Logger.WriteLog($"Player exit without exit code, and finishedProcesses.Count={finishedProcesses.Count} ");
+                return;
+            }
 
             foreach (var process in incorrectlyFinishedProcesses)
             {
-                Logger.WriteLog($"Find incorrectly finished process with exit code {process.ExitCode}");
+                Logger.WriteLog($"Restarting simulated player after it failed with exit code {process.ExitCode}");
+                process.Start();
             }
         }
     }
