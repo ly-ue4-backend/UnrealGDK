@@ -126,7 +126,7 @@ namespace Improbable.WorkerCoordinator
         {
             WaitingList.Add(clientInfo);
 
-            Logger.WriteLog($"=======> Add client info ClientName={clientInfo.ClientName}, StartTick={clientInfo.StartTick}, EndTick={clientInfo.EndTick}, curTick={DateTime.Now.Ticks}");
+            Logger.WriteLog($"[LifetimeComponent] Add client ClientName={clientInfo.ClientName}.");
         }
 
         private long NewLifetimeTicks()
@@ -149,8 +149,6 @@ namespace Improbable.WorkerCoordinator
         {
             CurTicks = DateTime.Now.Ticks;
 
-            Logger.WriteLog($"curTicks={CurTicks}, wait={WaitingList.Count}, run={RunningList.Count}");
-
             // Data flow is waiting list -> running list -> waiting list.
             // Checking sequence is running list -> waiting list.
 
@@ -164,10 +162,10 @@ namespace Improbable.WorkerCoordinator
                     // End client.
                     Host?.StopClient(SimulatedClientInfo);
 
-                    Logger.WriteLog($"=======> Stop client info ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
+                    Logger.WriteLog($"[LifetimeComponent] Stop client ClientName={SimulatedClientInfo.ClientName}.");
 
                     // Delay 10 seconds to restart.
-                    SimulatedClientInfo.StartTick = TimeSpan.FromSeconds(10).Ticks + CurTicks;
+                    SimulatedClientInfo.StartTick = TimeSpan.FromSeconds(RestartAfterSeconds).Ticks + CurTicks;
 
                     // Restart with new simulated player.
                     if (UseNewSimulatedPlayer)
@@ -178,8 +176,6 @@ namespace Improbable.WorkerCoordinator
                     // Move to wait list.
                     RunningList.RemoveAt(i);
                     WaitingList.Add(SimulatedClientInfo);
-
-                    Logger.WriteLog($"=======> Move to waiting list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                 }
             }
 
@@ -193,14 +189,14 @@ namespace Improbable.WorkerCoordinator
                     // Start client.
                     Host?.StartClient(SimulatedClientInfo);
 
+                    Logger.WriteLog($"[LifetimeComponent] Start client ClientName ={SimulatedClientInfo.ClientName}.");
+
                     // Update lifetime.
                     SimulatedClientInfo.EndTick = CurTicks + NewLifetimeTicks();
 
                     // Move to running list.
                     WaitingList.RemoveAt(i);
                     RunningList.Add(SimulatedClientInfo);
-
-                    Logger.WriteLog($"=======> Move to running list ClientName={SimulatedClientInfo.ClientName}, StartTick={SimulatedClientInfo.StartTick}, EndTick={SimulatedClientInfo.EndTick}, curTick={CurTicks}");
                 }
             }
         }
