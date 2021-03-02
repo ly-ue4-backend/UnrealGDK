@@ -128,7 +128,7 @@ namespace Improbable.WorkerCoordinator
         {
             WaitingList.Add(clientInfo);
 
-            Logger.WriteLog($"[LifetimeComponent][{DateTime.Now.ToString("HH-mm-ss")}] Add client ClientName={clientInfo.ClientName}.");
+            Logger.WriteLog($"[LifetimeComponent][{DateTime.Now.ToString("HH:mm:ss")}] Add client ClientName={clientInfo.ClientName}.");
         }
 
         private long NewLifetimeTicks()
@@ -167,7 +167,7 @@ namespace Improbable.WorkerCoordinator
                     // End client.
                     Host?.StopClient(SimulatedClientInfo);
 
-                    Logger.WriteLog($"[LifetimeComponent][{DateTime.Now.ToString("HH-mm-ss")}] Stop client ClientName={SimulatedClientInfo.ClientName}.");
+                    Logger.WriteLog($"[LifetimeComponent][{DateTime.Now.ToString("HH:mm:ss")}] Stop client ClientName={SimulatedClientInfo.ClientName}.");
 
                     // Delay 10 seconds to restart.
                     SimulatedClientInfo.StartTick = TimeSpan.FromSeconds(RestartAfterSeconds).Ticks + CurTicks;
@@ -194,7 +194,7 @@ namespace Improbable.WorkerCoordinator
                     // Start client.
                     Host?.StartClient(SimulatedClientInfo);
 
-                    Logger.WriteLog($"[LifetimeComponent][{DateTime.Now.ToString("HH-mm-ss")}] Start client ClientName ={SimulatedClientInfo.ClientName}.");
+                    Logger.WriteLog($"[LifetimeComponent][{DateTime.Now.ToString("HH:mm:ss")}] Start client ClientName ={SimulatedClientInfo.ClientName}.");
 
                     // Update lifetime.
                     SimulatedClientInfo.EndTick = CurTicks + NewLifetimeTicks();
