@@ -12,8 +12,7 @@ using namespace SpatialGDKEditor::Schema;
 
 TArray<EReplicatedPropertyGroup> GetAllReplicatedPropertyGroups()
 {
-	static TArray<EReplicatedPropertyGroup> Groups = { REP_MultiClient, REP_SingleClient, REP_InitialOnly };
-	return Groups;
+	return { REP_MultiClient, REP_SingleClient, REP_InitialOnly };
 }
 
 FString GetReplicatedPropertyGroupName(EReplicatedPropertyGroup Group)
