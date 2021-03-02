@@ -105,7 +105,7 @@ namespace Improbable.WorkerCoordinator
             foreach (var process in finishedProcesses)
             {
                 // StopSimulatedClient.sh will cause 137 code.
-                if (process.ExitCode == 0 || process.ExitCode != 137)
+                if (process.ExitCode != 0 && process.ExitCode != 137)
                 {
                     Logger.WriteLog($"Restarting simulated player after it failed with exit code {process.ExitCode}");
                     process.Start();
